@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DREAMSCAPE｜夢境失序</title>
+
+  <!-- Google Fonts: Cinzel & Cormorant Garamond (Dreamy Serif) + Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js & GSAP + ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dreamDark: '#17152D',
+            dreamPurple: '#8D7BFF',
+            dreamPink: '#F2B9DF',
+            dreamSky: '#A9D8F5',
+            dreamCyan: '#B9F0E6',
+            dreamWhite: '#F5F4FF',
+          },
+          fontFamily: {
+            serifTitle: ['"Cinzel"', '"Cormorant Garamond"', 'serif'],
+            serifSub: ['"Cormorant Garamond"', 'serif'],
+            sansBody: ['"Noto Sans TC"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg-deep: #17152D;
+      --accent-purple: #8D7BFF;
+      --accent-pink: #F2B9DF;
+      --accent-sky: #A9D8F5;
+      --accent-cyan: #B9F0E6;
+      --text-light: #F5F4FF;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      background-color: var(--bg-deep);
+      color: var(--text-light);
+      font-family: 'Noto Sans TC', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* 3D Canvas Background Layer */
+    #webgl-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: auto;
+      background: radial-gradient(circle at 50% 45%, #26214d 0%, #17152D 65%, #0d0c1d 100%);
+      transition: background 1.8s ease;
+    }
+
+    /* Ambient Vignette & Mist Overlay */
+    .dream-vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 45%, rgba(13, 12, 29, 0.72) 100%),
+        radial-gradient(circle at 20% 80%, rgba(141, 123, 255, 0.12), transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(242, 185, 223, 0.1), transparent 50%);
+    }
+
+    /* Glassmorphism Surreal UI */
+    .glass-pill {
+      background: rgba(23, 21, 45, 0.42);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(245, 244, 255, 0.16);
+      box-shadow: 0 8px 32px rgba(10, 9, 25, 0.4), inset 0 0 16px rgba(141, 123, 255, 0.08);
+    }
+
+    .glass-panel {
+      background: linear-gradient(135deg, rgba(28, 25, 58, 0.65), rgba(18, 16, 38, 0.78));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(245, 244, 255, 0.18);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(141, 123, 255, 0.15);
+    }
+
+    /* Glowing Button */
+    .btn-dream {
+      position: relative;
+      overflow: hidden;
+      background: rgba(141, 123, 255, 0.14);
+      border: 1px solid rgba(245, 244, 255, 0.35);
+      color: #F5F4FF;
+      transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 0 20px rgba(141, 123, 255, 0.25), inset 0 0 12px rgba(242, 185, 223, 0.15);
+    }
+
+    .btn-dream::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(245, 244, 255, 0.28), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.7s ease;
+    }
+
+    .btn-dream:hover {
+      background: rgba(141, 123, 255, 0.32);
+      border-color: #F2B9DF;
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 0 32px rgba(242, 185, 223, 0.45), inset 0 0 18px rgba(185, 240, 230, 0.25);
+    }
+
+    .btn-dream:hover::before {
+      transform: translateX(100%);
+    }
+
+    .btn-dream:active {
+      transform: scale(0.98);
+    }
+
+    /* Iris / Portal Transition Mask */
+    #transition-portal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+      background: radial-gradient(circle at center, #F5F4FF 0%, #8D7BFF 35%, #17152D 85%);
+      clip-path: circle(0% at 50% 50%);
+      opacity: 0;
+    }
+
+    /* Floating Island Portals on Dream Map */
+    .map-island-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s ease;
+      z-index: 15;
+    }
+
+    .map-island-node:hover {
+      transform: translate(-50%, -54%) scale(1.08);
+      z-index: 25;
+    }
+
+    .portal-ring {
+      animation: spinSlow 18s linear infinite;
+    }
+
+    .portal-ring-reverse {
+      animation: spinSlowReverse 24s linear infinite;
+    }
+
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes spinSlowReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    @keyframes floatGentle {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .animate-float {
+      animation: floatGentle 5.5s ease-in-out infinite;
+    }
+
+    /* Interactive Zone Stage */
+    .scene-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .scene-layer.active {
+      pointer-events: auto;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Scrollable Spacer for Map ScrollTrigger Exploration */
+    #scroll-track {
+      height: 320vh;
+      width: 100%;
+      pointer-events: none;
+      display: none;
+    }
+
+    #scroll-track.enabled {
+      display: block;
+    }
+
+    /* Fragment Glow Badge */
+    .fragment-slot {
+      transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .fragment-slot.collected {
+      border-color: rgba(185, 240, 230, 0.85);
+      background: radial-gradient(circle, rgba(141, 123, 255, 0.45), rgba(23, 21, 45, 0.7));
+      box-shadow: 0 0 18px rgba(185, 240, 230, 0.55);
+    }
+
+    /* Draggable item cursor in Gravity City */
+    .gravity-draggable {
+      cursor: grab;
+      touch-action: none;
+    }
+    .gravity-draggable:active {
+      cursor: grabbing;
+    }
+
+    /* NPC Floating & Pulse Effect */
+    @keyframes npcBob {
+      0%, 100% { transform: translateY(0px) rotate(-1deg); }
+      50% { transform: translateY(-7px) rotate(1.5deg); }
+    }
+    .npc-character {
+      animation: npcBob 4.2s ease-in-out infinite;
+    }
+
+    /* Dream Cursor Glow & Trail */
+    #dream-cursor-glow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(245, 244, 255, 0.95) 0%, rgba(185, 240, 230, 0.55) 35%, rgba(141, 123, 255, 0.18) 70%, transparent 100%);
+      box-shadow: 0 0 18px rgba(185, 240, 230, 0.75), 0 0 36px rgba(141, 123, 255, 0.45);
+      mix-blend-mode: screen;
+      opacity: 0;
+      transition: opacity 0.3s ease, width 0.25s ease, height 0.25s ease;
+    }
+
+    #dream-cursor-glow.active {
+      opacity: 1;
+    }
+
+    #dream-cursor-glow.clicking {
+      width: 44px;
+      height: 44px;
+      box-shadow: 0 0 28px rgba(242, 185, 223, 0.9), 0 0 52px rgba(185, 240, 230, 0.65);
+    }
+
+    .cursor-trail-spark {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 5px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      background: #B9F0E6;
+      box-shadow: 0 0 8px #F5F4FF;
+      mix-blend-mode: screen;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      #dream-cursor-glow, .cursor-trail-spark {
+        display: none !important;
+      }
+    }
+
+    /* Custom Scrollbar Hide */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #17152D;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(141, 123, 255, 0.4);
+      border-radius: 99px;
+    }
+
+    /* Reduced motion accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 3D Dream World Canvas -->
+  <div id="webgl-container"></div>
+  <div class="dream-vignette"></div>
+
+  <!-- Dream Mouse Follower Light Orb -->
+  <div id="dream-cursor-glow"></div>
+
+  <!-- Fullscreen Transition Portal Overlay -->
+  <div id="transition-portal"></div>
+
+  <!-- Scroll Track for ScrollTrigger Dream Map Depth & Sky Shift -->
+  <div id="scroll-track"></div>
+
+  <!-- ==================== PERSISTENT MINIMAL GAME HUD ==================== -->
+  <header id="game-hud" class="fixed top-0 left-0 right-0 z-40 px-4 py-4 sm:px-8 sm:py-6 flex items-center justify-between pointer-events-none opacity-0">
+    <!-- Top Left: DREAMSCAPE Logo -->
+    <button onclick="Game.returnToIntro()" class="pointer-events-auto flex items-center gap-3 group text-left focus:outline-none">
+      <div class="w-9 h-9 rounded-full glass-pill flex items-center justify-center relative">
+        <span class="w-2.5 h-2.5 rounded-full bg-dreamCyan shadow-[0_0_12px_#B9F0E6] group-hover:scale-125 transition-transform"></span>
+        <span class="absolute inset-1 rounded-full border border-dreamPurple/50 portal-ring"></span>
+      </div>
+      <div>
+        <div class="font-serifTitle text-sm sm:text-base tracking-[0.26em] text-dreamWhite font-semibold">DREAMSCAPE</div>
+        <div class="text-[10px] tracking-[0.2em] text-dreamSky/70 hidden sm:block">夢境失序</div>
+      </div>
+    </button>
+
+    <!-- Top Right: Collection, Sound, Menu -->
+    <div class="pointer-events-auto flex items-center gap-2 sm:gap-3">
+      <!-- Story / Lore Modal Button -->
+      <button onclick="Game.toggleModal('story-modal')" class="glass-pill px-3.5 py-2 rounded-full flex items-center gap-1.5 text-xs tracking-wider hover:border-dreamSky/60 transition">
+        <span class="w-1.5 h-1.5 rounded-full bg-dreamSky"></span>
+        <span>Story</span>
+      </button>
+
+      <!-- Collection Toggle Button -->
+      <button id="btn-collection-toggle" onclick="Game.toggleModal('collection-modal')" class="glass-pill px-3.5 py-2 rounded-full flex items-center gap-2 text-xs tracking-wider hover:border-dreamPink/60 transition">
+        <svg class="w-4 h-4 text-dreamPink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <polygon points="12 2 19 9 12 22 5 9 12 2"></polygon>
+          <line x1="5" y1="9" x2="19" y2="9"></line>
+        </svg>
+        <span class="hidden sm:inline">Collection</span>
+        <span id="hud-frag-badge" class="text-dreamCyan font-medium">0/3</span>
+      </button>
+
+      <!-- Sound Toggle -->
+      <button id="btn-sound-hud" onclick="SoundEngine.toggle()" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center hover:border-dreamSky/60 transition" aria-label="Toggle Sound">
+        <svg id="icon-sound-on" class="w-4 h-4 text-dreamCyan hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <svg id="icon-sound-off" class="w-4 h-4 text-dreamWhite/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </button>
+
+      <!-- Menu Button -->
+      <button onclick="Game.toggleModal('menu-modal')" class="glass-pill px-3.5 py-2 rounded-full flex items-center gap-2 text-xs tracking-[0.18em] hover:border-dreamPurple/70 transition">
+        <span>MENU</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Bottom Left / Center Status & Quick Map Bar -->
+  <footer id="game-footer-hud" class="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-8 sm:right-8 z-40 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none opacity-0">
+    <!-- Left: Progress & Fragment Crystals -->
+    <div class="pointer-events-auto glass-pill px-4 py-2.5 rounded-full flex items-center gap-4">
+      <button onclick="Game.goToMap()" class="text-xs tracking-[0.16em] text-dreamSky hover:text-white transition flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-dreamSky"></span>
+        <span>Dream Map</span>
+      </button>
+      <div class="h-3.5 w-[1px] bg-white/15"></div>
+      <div class="flex items-center gap-2.5">
+        <span class="text-[11px] tracking-wider text-dreamWhite/75">Memory Fragments</span>
+        <span id="footer-frag-count" class="text-xs font-semibold text-dreamCyan">0/3</span>
+        <!-- 3 Mini Crystal Indicators -->
+        <div class="flex items-center gap-1.5 ml-1">
+          <span id="mini-gem-forest" title="Nature Memory" class="w-3 h-3 rotate-45 border border-white/30 bg-white/5 transition-all duration-500"></span>
+          <span id="mini-gem-lake" title="Reflection Memory" class="w-3 h-3 rotate-45 border border-white/30 bg-white/5 transition-all duration-500"></span>
+          <span id="mini-gem-city" title="Space Memory" class="w-3 h-3 rotate-45 border border-white/30 bg-white/5 transition-all duration-500"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Contextual Hint Pill -->
+    <div id="hud-context-hint" class="pointer-events-none glass-pill px-4 py-2 rounded-full text-[11px] tracking-wider text-dreamWhite/80 hidden md:flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-dreamPink animate-pulse"></span>
+      <span id="hud-hint-text">移動滑鼠感受空間視差，點擊夢境島嶼進行探索</span>
+    </div>
+  </footer>
+
+  <!-- ==================== 01 | LANDING / INTRO SCREEN ==================== -->
+  <section id="scene-intro" class="scene-layer active flex flex-col items-center justify-between py-10 px-6 text-center">
+    <!-- Top Subtle Tag -->
+    <div id="intro-top-tag" class="opacity-0 text-[11px] tracking-[0.35em] uppercase text-dreamSky/75 mt-2">
+      Interactive Surreal Exploration
+    </div>
+
+    <!-- Center Floating Title & Portal Action -->
+    <div class="relative z-10 max-w-2xl mx-auto flex flex-col items-center my-auto">
+      <!-- Ethereal Halo Ring Behind Title -->
+      <div id="intro-halo" class="opacity-0 w-56 h-56 sm:w-72 sm:h-72 rounded-full border border-dreamPurple/30 absolute -top-10 pointer-events-none flex items-center justify-center">
+        <div class="w-44 h-44 sm:w-56 sm:h-56 rounded-full border border-dreamPink/25 portal-ring"></div>
+      </div>
+
+      <p id="intro-kicker" class="opacity-0 font-serifSub italic text-lg sm:text-xl text-dreamPink/90 tracking-wide mb-2">
+        The world between dreams and reality.
+      </p>
+
+      <h1 id="intro-title" class="opacity-0 font-serifTitle text-4xl sm:text-6xl md:text-7xl tracking-[0.22em] text-dreamWhite font-semibold drop-shadow-[0_0_28px_rgba(141,123,255,0.6)]">
+        DREAMSCAPE
+      </h1>
+
+      <div id="intro-divider" class="opacity-0 w-24 h-[1px] bg-gradient-to-r from-transparent via-dreamCyan to-transparent my-4"></div>
+
+      <p id="intro-cn-sub" class="opacity-0 text-sm sm:text-base tracking-[0.22em] text-dreamWhite/90 font-light mb-3">
+        「夢境核心已經碎裂，世界正陷入無序的崩解。」
+      </p>
+      <p id="intro-mission-brief" class="opacity-0 text-xs sm:text-sm text-dreamSky/85 max-w-md leading-relaxed mb-8 font-light">
+        你將化身<span class="text-dreamCyan font-medium">「夢境修復者」</span>，在三位夢境守望者的指引下，踏入雲端森林、記憶湖泊與失重城市，尋回散落的三枚記憶結晶並重塑核心。
+      </p>
+
+      <div id="intro-actions" class="opacity-0 flex flex-col sm:flex-row items-center gap-3.5">
+        <button id="btn-start-dreaming" onclick="Game.startDreaming()" class="btn-dream px-9 py-4 rounded-full font-serifTitle text-sm sm:text-base tracking-[0.25em] uppercase cursor-pointer">
+          Start Dreaming
+        </button>
+        <button onclick="Game.toggleModal('story-modal')" class="glass-pill px-6 py-3.5 rounded-full text-xs tracking-[0.2em] text-dreamWhite/80 hover:border-dreamPink/60 transition cursor-pointer">
+          故事背景設定
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Bar: Scroll Hint & Intro Sound Toggle -->
+    <div class="w-full max-w-6xl flex items-end justify-between">
+      <div class="w-10"></div>
+
+      <!-- Scroll to explore hint -->
+      <div id="intro-scroll-hint" class="opacity-0 flex flex-col items-center gap-2 text-dreamWhite/60">
+        <span class="text-[10px] tracking-[0.28em] uppercase">Scroll or Click to explore</span>
+        <div class="w-[1px] h-8 bg-gradient-to-b from-dreamSky to-transparent animate-pulse"></div>
+      </div>
+
+      <!-- Bottom Right Sound Switch -->
+      <button id="intro-sound-btn" onclick="SoundEngine.toggle()" class="opacity-0 glass-pill px-3.5 py-2 rounded-full flex items-center gap-2 text-xs text-dreamWhite/80 hover:border-dreamCyan/60 transition cursor-pointer">
+        <span id="intro-sound-dot" class="w-2 h-2 rounded-full bg-dreamWhite/40"></span>
+        <span id="intro-sound-label" class="tracking-wider text-[11px]">Sound Off</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 02 | DREAM MAP (FLOATING ISLANDS) ==================== -->
+  <section id="scene-map" class="scene-layer overflow-hidden">
+    <!-- Asymmetric Editorial Header & Clear Mission Guide -->
+    <div class="fixed top-20 left-5 sm:top-24 sm:left-10 z-20 max-w-xs sm:max-w-sm pointer-events-none">
+      <div class="flex items-center gap-2 text-[10px] tracking-[0.3em] uppercase text-dreamCyan/90 mb-1">
+        <span>Dreamscape Atlas</span>
+        <span>•</span>
+        <span>星域導航</span>
+      </div>
+      <h2 class="font-serifTitle text-2xl sm:text-3xl tracking-[0.16em] text-dreamWhite">失序星域地圖</h2>
+      <p class="text-xs text-dreamWhite/75 leading-relaxed mt-2 font-light">
+        夢境世界由外圍三大記憶島嶼與中央核心組成。點擊任一<span class="text-dreamCyan">發光傳送門</span>進入探索，尋回全部 3 枚碎片後即可開啟中央「夢境核心」。
+      </p>
+    </div>
+
+    <!-- Map Guide Character (Lumi - 星光引路人) -->
+    <div onclick="Game.talkToNPC('lumi')" class="fixed bottom-20 left-5 sm:bottom-24 sm:left-10 z-30 flex items-end gap-3 cursor-pointer group max-w-xs sm:max-w-sm">
+      <div class="npc-character w-12 h-12 sm:w-14 sm:h-14 rounded-full glass-pill border-dreamCyan/60 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(185,240,230,0.4)] group-hover:scale-110 transition-transform">
+        <!-- Lumi Star Spirit SVG -->
+        <svg class="w-9 h-9" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="14" fill="#B9F0E6" opacity="0.25"/>
+          <path d="M30 12 L34 24 L46 28 L34 32 L30 44 L26 32 L14 28 L26 24 Z" fill="#F5F4FF"/>
+          <circle cx="26" cy="27" r="1.8" fill="#17152D"/>
+          <circle cx="34" cy="27" r="1.8" fill="#17152D"/>
+          <path d="M28 31 Q30 33 32 31" stroke="#17152D" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="glass-panel px-3.5 py-2.5 rounded-2xl rounded-bl-sm border-dreamCyan/35 group-hover:border-dreamCyan/70 transition">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] tracking-widest text-dreamCyan font-medium">星光引路人・露米 (Lumi)</span>
+          <span class="text-[9px] text-dreamWhite/50">點擊對話</span>
+        </div>
+        <p id="npc-lumi-speech" class="text-[11px] text-dreamWhite/90 leading-snug mt-1">
+          「修復者，歡迎來到失序星域。先前往左上的【雲端森林】或右上的【記憶湖泊】尋找線索吧！」
+        </p>
+      </div>
+    </div>
+
+    <!-- Scroll Depth Indicator (Right Edge) -->
+    <div class="fixed right-5 top-1/2 -translate-y-1/2 z-20 hidden sm:flex flex-col items-center gap-2 pointer-events-none">
+      <span class="text-[9px] tracking-[0.2em] uppercase text-dreamWhite/50 [writing-mode:vertical-rl]">Depth</span>
+      <div class="w-[2px] h-28 bg-white/10 rounded-full overflow-hidden">
+        <div id="map-scroll-progress" class="w-full h-1/4 bg-gradient-to-b from-dreamCyan to-dreamPurple rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- Interactive Floating Spatial Map Container (Parallax Layer) -->
+    <div id="map-parallax-stage" class="relative w-full h-full">
+
+      <!-- Connecting Constellation SVG Lines -->
+      <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-45" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="constellationGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#B9F0E6" stop-opacity="0.6" />
+            <stop offset="50%" stop-color="#8D7BFF" stop-opacity="0.8" />
+            <stop offset="100%" stop-color="#F2B9DF" stop-opacity="0.6" />
+          </linearGradient>
+        </defs>
+        <path d="M 240 310 Q 380 420 500 500" stroke="url(#constellationGrad)" stroke-width="1.5" stroke-dasharray="6 6" fill="none" />
+        <path d="M 760 330 Q 620 420 500 500" stroke="url(#constellationGrad)" stroke-width="1.5" stroke-dasharray="6 6" fill="none" />
+        <path d="M 500 780 Q 500 640 500 500" stroke="url(#constellationGrad)" stroke-width="1.5" stroke-dasharray="6 6" fill="none" />
+      </svg>
+
+      <!-- NODE A: Cloud Forest｜雲端森林 -->
+      <div id="node-forest" onclick="Game.enterZone('forest')" onmouseenter="Game.hoverZone('forest', true)" onmouseleave="Game.hoverZone('forest', false)"
+           class="map-island-node group" style="left: 23%; top: 34%;">
+        <div class="relative flex flex-col items-center animate-float">
+          <!-- Glowing Circular Portal & Floating Island SVG -->
+          <div class="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border border-dreamCyan/40 group-hover:border-dreamCyan group-hover:scale-110 transition-all duration-500 portal-ring"></div>
+            <div class="absolute inset-2 rounded-full bg-gradient-to-b from-dreamPink/25 via-dreamPurple/20 to-transparent blur-md group-hover:blur-lg transition-all"></div>
+            <!-- Surreal Floating Forest Island Illustration -->
+            <svg class="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-[0_10px_20px_rgba(185,240,230,0.35)]" viewBox="0 0 120 120">
+              <!-- Island Base -->
+              <path d="M22 68 Q60 60 98 68 L76 102 Q60 112 44 102 Z" fill="#2A2454" stroke="#B9F0E6" stroke-width="1.2"/>
+              <ellipse cx="60" cy="67" rx="38" ry="8" fill="#463B7A"/>
+              <!-- Giant Glowing Mushrooms -->
+              <path d="M46 66 L46 46" stroke="#F5F4FF" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M32 48 C32 33, 60 33, 60 48 Z" fill="#F2B9DF"/>
+              <circle cx="42" cy="42" r="2" fill="#F5F4FF"/>
+              <circle cx="51" cy="44" r="1.5" fill="#F5F4FF"/>
+              <path d="M72 66 L72 52" stroke="#F5F4FF" stroke-width="2" stroke-linecap="round"/>
+              <path d="M62 53 C62 42, 82 42, 82 53 Z" fill="#B9F0E6"/>
+              <!-- Floating Spores -->
+              <circle cx="38" cy="26" r="2" fill="#B9F0E6"/>
+              <circle cx="80" cy="30" r="2.5" fill="#F2B9DF"/>
+            </svg>
+            <!-- Collected Check Badge -->
+            <span id="map-badge-forest" class="hidden absolute -top-1 -right-1 w-6 h-6 rounded-full bg-dreamCyan text-dreamDark text-xs font-bold flex items-center justify-center shadow-[0_0_12px_#B9F0E6]">✓</span>
+          </div>
+
+          <!-- Floating Label & Rich Hover Intel Card -->
+          <div class="mt-2 text-center relative">
+            <div class="font-serifTitle text-xs sm:text-sm tracking-[0.2em] text-dreamCyan">01 • CLOUD FOREST</div>
+            <div class="text-xs text-dreamWhite/95 font-medium">雲端森林</div>
+            <div class="text-[10px] text-dreamWhite/60 mt-0.5">目標：Nature Memory</div>
+
+            <!-- Hover Detail Tooltip -->
+            <div class="opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 mt-2 glass-panel px-3.5 py-2.5 rounded-2xl w-48 mx-auto border-dreamCyan/40">
+              <div class="text-[10px] text-dreamCyan font-medium">守望者：孢子精靈・莫斯</div>
+              <p class="text-[10px] text-dreamWhite/75 mt-1 leading-relaxed">漂浮於粉紫雲海的巨型菌菇林，喚醒沉睡植物以尋回自然記憶。</p>
+              <span class="inline-block mt-1.5 px-3 py-0.5 rounded-full bg-dreamCyan/20 text-[10px] tracking-[0.18em] text-dreamCyan border border-dreamCyan/40">EXPLORE →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NODE B: Memory Lake｜記憶湖泊 -->
+      <div id="node-lake" onclick="Game.enterZone('lake')" onmouseenter="Game.hoverZone('lake', true)" onmouseleave="Game.hoverZone('lake', false)"
+           class="map-island-node group" style="left: 77%; top: 34%;">
+        <div class="relative flex flex-col items-center animate-float" style="animation-delay: -1.8s;">
+          <div class="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border border-dreamSky/40 group-hover:border-dreamSky group-hover:scale-110 transition-all duration-500 portal-ring-reverse"></div>
+            <div class="absolute inset-2 rounded-full bg-gradient-to-b from-dreamSky/25 via-dreamPurple/20 to-transparent blur-md"></div>
+            <!-- Surreal Lake Island SVG -->
+            <svg class="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-[0_10px_20px_rgba(169,216,245,0.35)]" viewBox="0 0 120 120">
+              <path d="M20 68 Q60 62 100 68 L74 100 Q60 108 46 100 Z" fill="#1F2859" stroke="#A9D8F5" stroke-width="1.2"/>
+              <!-- Reflective Water Surface -->
+              <ellipse cx="60" cy="67" rx="39" ry="9" fill="#A9D8F5" fill-opacity="0.35" stroke="#A9D8F5" stroke-width="1"/>
+              <ellipse cx="60" cy="67" rx="22" ry="4" fill="none" stroke="#F5F4FF" stroke-width="0.8" stroke-dasharray="4 3"/>
+              <!-- Floating Crystals -->
+              <polygon points="60,26 68,44 60,56 52,44" fill="#A9D8F5" fill-opacity="0.85" stroke="#F5F4FF" stroke-width="1"/>
+              <polygon points="40,42 45,52 40,59 35,52" fill="#8D7BFF" fill-opacity="0.85"/>
+              <polygon points="81,40 86,50 81,57 76,50" fill="#B9F0E6" fill-opacity="0.85"/>
+            </svg>
+            <span id="map-badge-lake" class="hidden absolute -top-1 -right-1 w-6 h-6 rounded-full bg-dreamCyan text-dreamDark text-xs font-bold flex items-center justify-center shadow-[0_0_12px_#B9F0E6]">✓</span>
+          </div>
+
+          <div class="mt-2 text-center relative">
+            <div class="font-serifTitle text-xs sm:text-sm tracking-[0.2em] text-dreamSky">02 • MEMORY LAKE</div>
+            <div class="text-xs text-dreamWhite/95 font-medium">記憶湖泊</div>
+            <div class="text-[10px] text-dreamWhite/60 mt-0.5">目標：Reflection Memory</div>
+
+            <!-- Hover Detail Tooltip -->
+            <div class="opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 mt-2 glass-panel px-3.5 py-2.5 rounded-2xl w-48 mx-auto border-dreamSky/40">
+              <div class="text-[10px] text-dreamSky font-medium">守望者：鏡湖祭司・希爾薇</div>
+              <p class="text-[10px] text-dreamWhite/75 mt-1 leading-relaxed">倒映星辰的鏡面之湖，點亮雙子水晶以喚醒湖底倒影記憶。</p>
+              <span class="inline-block mt-1.5 px-3 py-0.5 rounded-full bg-dreamSky/20 text-[10px] tracking-[0.18em] text-dreamSky border border-dreamSky/40">EXPLORE →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NODE C: Gravity City｜失重城市 -->
+      <div id="node-city" onclick="Game.enterZone('city')" onmouseenter="Game.hoverZone('city', true)" onmouseleave="Game.hoverZone('city', false)"
+           class="map-island-node group" style="left: 50%; top: 77%;">
+        <div class="relative flex flex-col items-center animate-float" style="animation-delay: -3.2s;">
+          <div class="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border border-dreamPink/40 group-hover:border-dreamPink group-hover:scale-110 transition-all duration-500 portal-ring"></div>
+            <div class="absolute inset-2 rounded-full bg-gradient-to-b from-dreamPink/25 via-dreamPurple/25 to-transparent blur-md"></div>
+            <!-- Surreal Gravity City SVG -->
+            <svg class="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-[0_10px_20px_rgba(242,185,223,0.35)]" viewBox="0 0 120 120">
+              <!-- Upside-down & Floating Towers -->
+              <rect x="48" y="24" width="16" height="34" rx="2" fill="#322B66" stroke="#F2B9DF" stroke-width="1.2" transform="rotate(-12 56 41)"/>
+              <polygon points="46,24 56,12 66,24" fill="#F2B9DF" transform="rotate(-12 56 41)"/>
+              <rect x="70" y="42" width="12" height="24" rx="2" fill="#25204D" stroke="#8D7BFF" stroke-width="1.2" transform="rotate(18 76 54)"/>
+              <!-- Floating Stair / Arch -->
+              <path d="M30 68 Q60 48 90 68" fill="none" stroke="#F5F4FF" stroke-width="1.4" stroke-dasharray="3 3"/>
+              <!-- Inverted Spire Below -->
+              <polygon points="44,74 76,74 60,104" fill="#2A2454" stroke="#F2B9DF" stroke-width="1.2"/>
+            </svg>
+            <span id="map-badge-city" class="hidden absolute -top-1 -right-1 w-6 h-6 rounded-full bg-dreamCyan text-dreamDark text-xs font-bold flex items-center justify-center shadow-[0_0_12px_#B9F0E6]">✓</span>
+          </div>
+
+          <div class="mt-2 text-center relative">
+            <div class="font-serifTitle text-xs sm:text-sm tracking-[0.2em] text-dreamPink">03 • GRAVITY CITY</div>
+            <div class="text-xs text-dreamWhite/95 font-medium">失重城市</div>
+            <div class="text-[10px] text-dreamWhite/60 mt-0.5">目標：Space Memory</div>
+
+            <!-- Hover Detail Tooltip -->
+            <div class="opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 mt-1.5 glass-panel px-3.5 py-2 rounded-2xl w-52 mx-auto border-dreamPink/40">
+              <div class="text-[10px] text-dreamPink font-medium">守望者：時空建築師・克羅諾</div>
+              <p class="text-[10px] text-dreamWhite/75 mt-0.5 leading-relaxed">重力逆轉的懸浮遺跡，拖曳建築移開遮蔽以尋獲空間記憶。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NODE D: Dream Core｜夢境核心 (Center) -->
+      <div id="node-core" onclick="Game.enterZone('core')" onmouseenter="Game.hoverZone('core', true)" onmouseleave="Game.hoverZone('core', false)"
+           class="map-island-node group" style="left: 50%; top: 50%;">
+        <div class="relative flex flex-col items-center">
+          <div id="core-portal-orb" class="relative w-32 h-32 sm:w-44 sm:h-44 flex items-center justify-center">
+            <!-- Outer Energy Rings -->
+            <div class="absolute inset-0 rounded-full border border-dashed border-dreamPurple/50 portal-ring"></div>
+            <div class="absolute inset-3 rounded-full border border-dreamPink/40 portal-ring-reverse"></div>
+            <div id="core-glow-aura" class="absolute inset-6 rounded-full bg-dreamPurple/20 blur-xl transition-all duration-700"></div>
+
+            <!-- Central Core Crystal SVG -->
+            <svg class="w-20 h-20 sm:w-24 sm:h-24 relative z-10" viewBox="0 0 100 100">
+              <polygon id="core-map-crystal" points="50,10 78,42 50,90 22,42" fill="#2B2559" stroke="#8D7BFF" stroke-width="1.8"/>
+              <polygon points="50,10 64,42 50,90 36,42" fill="rgba(245,244,255,0.12)"/>
+              <line x1="22" y1="42" x2="78" y2="42" stroke="#F5F4FF" stroke-opacity="0.5" stroke-width="1"/>
+            </svg>
+          </div>
+
+          <div class="mt-1 text-center glass-pill px-4 py-1.5 rounded-full">
+            <div class="font-serifTitle text-xs sm:text-sm tracking-[0.22em] text-dreamWhite">DREAM CORE</div>
+            <div id="core-status-label" class="text-[11px] text-dreamPink/90">夢境核心・尚未完整 (0/3)</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== 03 | SCENE 01: CLOUD FOREST 雲端森林 ==================== -->
+  <section id="scene-forest" class="scene-layer flex flex-col justify-between p-6 sm:p-10">
+    <!-- Zone Header -->
+    <div class="mt-14 sm:mt-16 max-w-md pointer-events-none">
+      <div class="flex items-center gap-2 text-dreamCyan text-xs tracking-[0.25em] uppercase">
+        <span>Zone 01</span>
+        <span>•</span>
+        <span>Cloud Forest</span>
+      </div>
+      <h2 class="font-serifTitle text-3xl sm:text-4xl tracking-[0.14em] mt-1">雲端森林</h2>
+      <p class="text-xs sm:text-sm text-dreamWhite/80 mt-2 font-light leading-relaxed">
+        懸浮於粉紫雲海之上的巨型菌菇林。點擊發光植物使它們綻放，尋找隱藏在花苞深處的「自然記憶碎片」。
+      </p>
+    </div>
+
+    <!-- Zone Character: 孢子精靈・莫斯 (Moss) -->
+    <div onclick="Game.talkToNPC('moss')" class="fixed top-20 right-5 sm:top-24 sm:right-10 z-30 flex items-center gap-3 cursor-pointer group max-w-xs">
+      <div class="glass-panel px-3.5 py-2.5 rounded-2xl rounded-br-sm border-dreamCyan/35 text-right group-hover:border-dreamCyan/70 transition">
+        <div class="text-[10px] tracking-widest text-dreamCyan font-medium">孢子精靈・莫斯 (Moss)</div>
+        <p id="npc-moss-speech" class="text-[11px] text-dreamWhite/85 leading-snug mt-1">
+          「森林的孢子失去了旋律……試著觸碰中央那朵『共鳴花蕊』，它正包覆著自然記憶！」
+        </p>
+      </div>
+      <div class="npc-character w-12 h-12 rounded-full glass-pill border-dreamCyan/60 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(185,240,230,0.35)]">
+        <svg class="w-8 h-8" viewBox="0 0 60 60">
+          <path d="M14 30 C14 14, 46 14, 46 30 Z" fill="#F2B9DF"/>
+          <circle cx="24" cy="22" r="2.5" fill="#F5F4FF"/>
+          <circle cx="36" cy="24" r="2" fill="#B9F0E6"/>
+          <rect x="23" y="30" width="14" height="14" rx="7" fill="#F5F4FF"/>
+          <circle cx="27" cy="36" r="1.5" fill="#17152D"/>
+          <circle cx="33" cy="36" r="1.5" fill="#17152D"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Interactive Surreal Botanical Stage -->
+    <div id="forest-interactive-canvas" class="relative flex-1 w-full max-w-5xl mx-auto my-2 flex items-center justify-center">
+      <!-- Floating Island Base Visual -->
+      <div class="absolute bottom-6 w-[85%] max-w-2xl h-24 rounded-[100%] bg-gradient-to-b from-dreamPurple/35 to-transparent blur-xl pointer-events-none"></div>
+
+      <!-- Interactive Giant Mushroom 1 -->
+      <button onclick="ForestScene.bloomPlant(this, 1)" class="forest-plant absolute left-[12%] sm:left-[18%] bottom-[22%] group focus:outline-none cursor-pointer transition-transform duration-500 hover:scale-110" aria-label="Glowing Mushroom">
+        <svg class="w-28 h-36 sm:w-36 sm:h-44 overflow-visible" viewBox="0 0 120 150">
+          <ellipse cx="60" cy="135" rx="30" ry="8" fill="rgba(185,240,230,0.2)"/>
+          <path d="M54 135 Q50 95 58 68 L64 68 Q68 95 66 135 Z" fill="#E6E1FF"/>
+          <path class="plant-cap transition-all duration-500" d="M20 72 C20 32, 100 32, 100 72 Q60 82 20 72 Z" fill="#8D7BFF"/>
+          <circle cx="44" cy="52" r="5" fill="#F2B9DF" class="group-hover:scale-125 transition-transform"/>
+          <circle cx="72" cy="48" r="6" fill="#B9F0E6"/>
+          <circle cx="58" cy="60" r="3.5" fill="#F5F4FF"/>
+        </svg>
+        <span class="block text-[10px] tracking-widest text-dreamSky/70 opacity-0 group-hover:opacity-100 transition">點擊喚醒</span>
+      </button>
+
+      <!-- Interactive Luminescent Blossom 2 (Contains Nature Memory Fragment!) -->
+      <button id="forest-secret-flower" onclick="ForestScene.triggerSecretFlower(this)" class="forest-plant absolute left-[46%] sm:left-[48%] bottom-[32%] group focus:outline-none cursor-pointer transition-all duration-500 hover:scale-110" aria-label="Secret Dream Flower">
+        <div id="forest-flower-aura" class="absolute inset-0 rounded-full bg-dreamPink/20 blur-xl scale-75 group-hover:scale-125 group-hover:bg-dreamCyan/40 transition-all duration-500"></div>
+        <svg id="forest-flower-svg" class="w-32 h-40 sm:w-40 sm:h-48 relative z-10 overflow-visible transition-transform duration-700 group-hover:rotate-12" viewBox="0 0 140 160">
+          <!-- Stem -->
+          <path d="M70 150 Q64 110 70 78" stroke="#B9F0E6" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M68 122 Q45 112 42 98 Q58 102 68 116" fill="#8D7BFF" opacity="0.8"/>
+          <path d="M70 110 Q95 100 98 86 Q82 90 70 104" fill="#B9F0E6" opacity="0.8"/>
+          <!-- Petals -->
+          <g class="flower-petals origin-[70px_70px] transition-transform duration-700">
+            <ellipse cx="70" cy="42" rx="14" ry="26" fill="#F2B9DF" opacity="0.9"/>
+            <ellipse cx="70" cy="42" rx="14" ry="26" fill="#F2B9DF" opacity="0.85" transform="rotate(60 70 70)"/>
+            <ellipse cx="70" cy="42" rx="14" ry="26" fill="#F2B9DF" opacity="0.85" transform="rotate(120 70 70)"/>
+            <ellipse cx="70" cy="42" rx="14" ry="26" fill="#A9D8F5" opacity="0.8" transform="rotate(180 70 70)"/>
+            <ellipse cx="70" cy="42" rx="14" ry="26" fill="#A9D8F5" opacity="0.8" transform="rotate(240 70 70)"/>
+            <ellipse cx="70" cy="42" rx="14" ry="26" fill="#F2B9DF" opacity="0.85" transform="rotate(300 70 70)"/>
+          </g>
+          <!-- Core Seed / Hidden Fragment -->
+          <polygon id="forest-fragment-gem" points="70,55 80,70 70,85 60,70" fill="#B9F0E6" stroke="#F5F4FF" stroke-width="1.5"/>
+        </svg>
+        <span id="forest-flower-hint" class="block text-[10px] tracking-widest text-dreamCyan opacity-80 group-hover:opacity-100 transition">共鳴花蕊</span>
+      </button>
+
+      <!-- Interactive Floating Flora 3 -->
+      <button onclick="ForestScene.bloomPlant(this, 3)" class="forest-plant absolute right-[12%] sm:right-[18%] bottom-[24%] group focus:outline-none cursor-pointer transition-transform duration-500 hover:scale-110" aria-label="Floating Bell Flower">
+        <svg class="w-24 h-32 sm:w-32 sm:h-40 overflow-visible" viewBox="0 0 120 140">
+          <path d="M60 130 Q72 90 56 52" stroke="#A9D8F5" stroke-width="2.5" fill="none"/>
+          <path class="plant-cap transition-all duration-500" d="M36 56 C36 28, 80 28, 80 56 C70 64, 46 64, 36 56 Z" fill="#F2B9DF"/>
+          <circle cx="58" cy="64" r="6" fill="#B9F0E6"/>
+          <circle cx="34" cy="34" r="2.5" fill="#F5F4FF" class="animate-ping"/>
+        </svg>
+        <span class="block text-[10px] tracking-widest text-dreamPink/70 opacity-0 group-hover:opacity-100 transition">輕觸發光</span>
+      </button>
+    </div>
+
+    <!-- Bottom Action Bar -->
+    <div class="mb-14 sm:mb-12 flex justify-center z-20">
+      <button onclick="Game.goToMap()" class="btn-dream px-6 py-2.5 rounded-full text-xs tracking-[0.2em] uppercase">
+        ← Back to Dream Map
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 04 | SCENE 02: MEMORY LAKE 記憶湖泊 ==================== -->
+  <section id="scene-lake" class="scene-layer flex flex-col justify-between p-6 sm:p-10">
+    <div class="mt-14 sm:mt-16 max-w-md pointer-events-none z-20">
+      <div class="flex items-center gap-2 text-dreamSky text-xs tracking-[0.25em] uppercase">
+        <span>Zone 02</span>
+        <span>•</span>
+        <span>Memory Lake</span>
+      </div>
+      <h2 class="font-serifTitle text-3xl sm:text-4xl tracking-[0.14em] mt-1">記憶湖泊</h2>
+      <p class="text-xs sm:text-sm text-dreamWhite/80 mt-2 font-light leading-relaxed">
+        倒映無垠星空的靜謐鏡湖。滑動或點擊湖面激起記憶漣漪，點亮漂浮水晶以喚出沉睡湖底的「倒影記憶碎片」。
+      </p>
+    </div>
+
+    <!-- Zone Character: 鏡湖祭司・希爾薇 (Sylvie) -->
+    <div onclick="Game.talkToNPC('sylvie')" class="fixed top-20 right-5 sm:top-24 sm:right-10 z-30 flex items-center gap-3 cursor-pointer group max-w-xs">
+      <div class="glass-panel px-3.5 py-2.5 rounded-2xl rounded-br-sm border-dreamSky/35 text-right group-hover:border-dreamSky/70 transition">
+        <div class="text-[10px] tracking-widest text-dreamSky font-medium">鏡湖祭司・希爾薇 (Sylvie)</div>
+        <p id="npc-sylvie-speech" class="text-[11px] text-dreamWhite/85 leading-snug mt-1">
+          「星光沉入了湖底……請同時點亮左右兩座【共鳴水晶】，湖水便會托起倒影記憶。」
+        </p>
+      </div>
+      <div class="npc-character w-12 h-12 rounded-full glass-pill border-dreamSky/60 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(169,216,245,0.35)]">
+        <svg class="w-8 h-8" viewBox="0 0 60 60">
+          <path d="M30 10 L42 26 L30 48 L18 26 Z" fill="#A9D8F5" opacity="0.35"/>
+          <circle cx="30" cy="28" r="10" fill="#E6EEFF"/>
+          <path d="M22 18 Q30 10 38 18" stroke="#A9D8F5" stroke-width="2" fill="none"/>
+          <circle cx="27" cy="28" r="1.5" fill="#17152D"/>
+          <circle cx="33" cy="28" r="1.5" fill="#17152D"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Interactive Ripple Canvas + Floating Crystals -->
+    <div id="lake-stage" class="relative flex-1 w-full my-2 overflow-hidden rounded-3xl">
+      <canvas id="lake-ripple-canvas" class="absolute inset-0 w-full h-full cursor-crosshair"></canvas>
+
+      <!-- Floating Crystal 1 -->
+      <button onclick="LakeScene.activateCrystal(0, this)" class="lake-crystal absolute left-[22%] top-[36%] p-3 group cursor-pointer transition-transform hover:scale-115 focus:outline-none">
+        <div class="w-12 h-16 sm:w-14 sm:h-20 flex items-center justify-center relative">
+          <div class="crystal-glow absolute inset-0 rounded-full bg-dreamSky/20 blur-md transition-all"></div>
+          <svg class="w-full h-full relative z-10" viewBox="0 0 60 80">
+            <polygon points="30,4 52,36 30,76 8,36" fill="#29366F" stroke="#A9D8F5" stroke-width="2"/>
+            <polygon points="30,4 40,36 30,76 20,36" fill="rgba(169,216,245,0.35)"/>
+          </svg>
+        </div>
+        <span class="text-[10px] tracking-widest text-dreamSky/80">共鳴水晶 I</span>
+      </button>
+
+      <!-- Floating Crystal 2 -->
+      <button onclick="LakeScene.activateCrystal(1, this)" class="lake-crystal absolute right-[22%] top-[34%] p-3 group cursor-pointer transition-transform hover:scale-115 focus:outline-none">
+        <div class="w-12 h-16 sm:w-14 sm:h-20 flex items-center justify-center relative">
+          <div class="crystal-glow absolute inset-0 rounded-full bg-dreamPurple/20 blur-md transition-all"></div>
+          <svg class="w-full h-full relative z-10" viewBox="0 0 60 80">
+            <polygon points="30,4 52,36 30,76 8,36" fill="#2E2663" stroke="#8D7BFF" stroke-width="2"/>
+            <polygon points="30,4 40,36 30,76 20,36" fill="rgba(141,123,255,0.35)"/>
+          </svg>
+        </div>
+        <span class="text-[10px] tracking-widest text-dreamPurple">共鳴水晶 II</span>
+      </button>
+
+      <!-- Sunken Reflection Memory Fragment (Reveals clearly as crystals resonate or clicked directly) -->
+      <button id="lake-secret-fragment" onclick="LakeScene.collectLakeFragment()" class="absolute left-1/2 top-[62%] -translate-x-1/2 -translate-y-1/2 p-4 cursor-pointer group focus:outline-none transition-all duration-700 opacity-45 hover:opacity-100">
+        <div class="relative w-20 h-20 flex items-center justify-center">
+          <div id="lake-frag-ring" class="absolute inset-0 rounded-full border border-dreamSky/50 scale-75 group-hover:scale-110 transition-all"></div>
+          <svg class="w-12 h-12 drop-shadow-[0_0_16px_#A9D8F5]" viewBox="0 0 60 60">
+            <polygon points="30,4 52,30 30,56 8,30" fill="#A9D8F5" stroke="#F5F4FF" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <span id="lake-frag-label" class="block text-[10px] tracking-[0.2em] text-dreamSky text-center">湖底微光・點擊打撈</span>
+      </button>
+    </div>
+
+    <div class="mb-14 sm:mb-12 flex justify-center z-20">
+      <button onclick="Game.goToMap()" class="btn-dream px-6 py-2.5 rounded-full text-xs tracking-[0.2em] uppercase">
+        ← Back to Dream Map
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 05 | SCENE 03: GRAVITY CITY 失重城市 ==================== -->
+  <section id="scene-city" class="scene-layer flex flex-col justify-between p-6 sm:p-10">
+    <div class="mt-14 sm:mt-16 max-w-md pointer-events-none z-20">
+      <div class="flex items-center gap-2 text-dreamPink text-xs tracking-[0.25em] uppercase">
+        <span>Zone 03</span>
+        <span>•</span>
+        <span>Gravity City</span>
+      </div>
+      <h2 class="font-serifTitle text-3xl sm:text-4xl tracking-[0.14em] mt-1">失重城市</h2>
+      <p class="text-xs sm:text-sm text-dreamWhite/80 mt-2 font-light leading-relaxed">
+        重力法則失效的倒懸建築群。<strong>拖曳漂浮的建築模組</strong>移開遮蔽，或點擊旋轉鐘樓，找出藏在空間夾縫中的「空間記憶碎片」。
+      </p>
+    </div>
+
+    <!-- Zone Character: 時空建築師・克羅諾 (Chrono) -->
+    <div onclick="Game.talkToNPC('chrono')" class="fixed top-20 right-5 sm:top-24 sm:right-10 z-30 flex items-center gap-3 cursor-pointer group max-w-xs">
+      <div class="glass-panel px-3.5 py-2.5 rounded-2xl rounded-br-sm border-dreamPink/35 text-right group-hover:border-dreamPink/70 transition">
+        <div class="text-[10px] tracking-widest text-dreamPink font-medium">時空建築師・克羅諾 (Chrono)</div>
+        <p id="npc-chrono-speech" class="text-[11px] text-dreamWhite/85 leading-snug mt-1">
+          「空間座標錯亂了！試著按住中央的【倒懸鐘樓】並將它拖曳移開，空間碎片就藏在它後方。」
+        </p>
+      </div>
+      <div class="npc-character w-12 h-12 rounded-full glass-pill border-dreamPink/60 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(242,185,223,0.35)]">
+        <svg class="w-8 h-8" viewBox="0 0 60 60">
+          <rect x="18" y="18" width="24" height="24" rx="4" transform="rotate(45 30 30)" fill="#322B66" stroke="#F2B9DF" stroke-width="1.8"/>
+          <circle cx="26" cy="29" r="1.6" fill="#F5F4FF"/>
+          <circle cx="34" cy="29" r="1.6" fill="#F5F4FF"/>
+          <line x1="27" y1="34" x2="33" y2="34" stroke="#F2B9DF" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Draggable & Rotatable Anti-Gravity Objects Stage -->
+    <div id="city-stage" class="relative flex-1 w-full max-w-5xl mx-auto my-2">
+
+      <!-- Hidden Space Memory Fragment Behind Central Floating Monolith -->
+      <button id="city-secret-fragment" onclick="CityScene.collectCityFragment()" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 p-4 cursor-pointer group focus:outline-none">
+        <div class="w-20 h-20 rounded-full bg-dreamPink/20 blur-md absolute inset-0 animate-pulse"></div>
+        <svg class="w-12 h-12 relative z-10 drop-shadow-[0_0_18px_#F2B9DF] group-hover:scale-125 transition-transform" viewBox="0 0 60 60">
+          <polygon points="30,4 54,30 30,56 6,30" fill="#F2B9DF" stroke="#F5F4FF" stroke-width="2"/>
+        </svg>
+        <span class="block text-[10px] tracking-widest text-dreamPink mt-1">空間碎片</span>
+      </button>
+
+      <!-- Draggable Floating Architecture Block 1 (Initially covers center fragment) -->
+      <div id="drag-building-1" class="gravity-draggable glass-panel rounded-2xl p-4 w-40 sm:w-48 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center text-center shadow-[0_15px_40px_rgba(0,0,0,0.65)]">
+        <svg class="w-20 h-20 mb-2" viewBox="0 0 80 80">
+          <rect x="24" y="12" width="32" height="52" rx="3" fill="#2B2459" stroke="#F2B9DF" stroke-width="1.5"/>
+          <polygon points="20,12 40,2 60,12" fill="#8D7BFF"/>
+          <circle cx="40" cy="34" r="6" fill="none" stroke="#F5F4FF" stroke-width="1.2"/>
+          <line x1="40" y1="34" x2="40" y2="30" stroke="#F5F4FF" stroke-width="1.2"/>
+          <line x1="40" y1="34" x2="43" y2="34" stroke="#F5F4FF" stroke-width="1.2"/>
+        </svg>
+        <div class="text-xs font-medium text-dreamWhite">倒懸鐘樓</div>
+        <div class="text-[10px] text-dreamPink/80 mt-0.5">按住並拖曳移開</div>
+      </div>
+
+      <!-- Draggable Floating Stairway 2 -->
+      <div id="drag-building-2" onclick="CityScene.rotateObject(this)" class="gravity-draggable glass-panel rounded-2xl p-3.5 w-36 absolute left-[16%] top-[28%] z-20 flex flex-col items-center text-center transition-transform duration-300">
+        <svg class="w-16 h-16 mb-1" viewBox="0 0 80 80">
+          <path d="M15 60 L30 60 L30 45 L45 45 L45 30 L65 30" fill="none" stroke="#B9F0E6" stroke-width="2.5"/>
+          <circle cx="55" cy="18" r="5" fill="#F2B9DF"/>
+        </svg>
+        <div class="text-[11px] text-dreamWhite">無盡階梯</div>
+        <div class="text-[9px] text-dreamCyan/80">可拖曳 / 點擊旋轉</div>
+      </div>
+
+      <!-- Draggable Floating Archway 3 -->
+      <div id="drag-building-3" onclick="CityScene.rotateObject(this)" class="gravity-draggable glass-panel rounded-2xl p-3.5 w-36 absolute right-[16%] bottom-[26%] z-20 flex flex-col items-center text-center transition-transform duration-300">
+        <svg class="w-16 h-16 mb-1" viewBox="0 0 80 80">
+          <path d="M20 65 L20 35 A20 20 0 0 1 60 35 L60 65" fill="none" stroke="#A9D8F5" stroke-width="2.5"/>
+          <polygon points="40,26 46,38 40,50 34,38" fill="#8D7BFF"/>
+        </svg>
+        <div class="text-[11px] text-dreamWhite">懸浮拱門</div>
+        <div class="text-[9px] text-dreamSky/80">可拖曳 / 點擊旋轉</div>
+      </div>
+
+    </div>
+
+    <div class="mb-14 sm:mb-12 flex justify-center z-20">
+      <button onclick="Game.goToMap()" class="btn-dream px-6 py-2.5 rounded-full text-xs tracking-[0.2em] uppercase">
+        ← Back to Dream Map
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 06 | SCENE 04: DREAM CORE 夢境核心 ==================== -->
+  <section id="scene-core" class="scene-layer flex flex-col justify-between items-center p-6 sm:p-10 text-center">
+    <div class="mt-14 sm:mt-16 max-w-lg pointer-events-none z-20">
+      <div class="text-xs tracking-[0.28em] uppercase text-dreamPurple">Zone 04 • Dream Core</div>
+      <h2 class="font-serifTitle text-3xl sm:text-4xl tracking-[0.16em] mt-1">夢境核心</h2>
+      <p id="core-scene-desc" class="text-xs sm:text-sm text-dreamWhite/80 mt-2 font-light">
+        維繫整個夢境世界秩序的能量中樞。集齊三枚記憶碎片後，即可啟動核心修復。
+      </p>
+    </div>
+
+    <!-- Central Core Altar & Orbiting 3 Memory Fragments -->
+    <div id="core-altar-stage" class="relative w-72 h-72 sm:w-96 sm:h-96 flex items-center justify-center my-auto z-20">
+      <!-- Rotating Energy Rings -->
+      <div id="core-ring-1" class="absolute inset-0 rounded-full border border-dreamPurple/40 portal-ring"></div>
+      <div id="core-ring-2" class="absolute inset-6 rounded-full border border-dashed border-dreamSky/40 portal-ring-reverse"></div>
+      <div id="core-ring-3" class="absolute inset-12 rounded-full border border-dreamPink/35 portal-ring"></div>
+
+      <!-- Orbiting Fragment 1: Nature (Top Left) -->
+      <div id="orbit-frag-forest" class="absolute top-6 left-10 w-11 h-11 rounded-full glass-pill flex items-center justify-center opacity-30 transition-all duration-700">
+        <svg class="w-6 h-6" viewBox="0 0 40 40">
+          <polygon points="20,4 34,20 20,36 6,20" fill="#B9F0E6"/>
+        </svg>
+      </div>
+
+      <!-- Orbiting Fragment 2: Reflection (Top Right) -->
+      <div id="orbit-frag-lake" class="absolute top-6 right-10 w-11 h-11 rounded-full glass-pill flex items-center justify-center opacity-30 transition-all duration-700">
+        <svg class="w-6 h-6" viewBox="0 0 40 40">
+          <polygon points="20,4 34,20 20,36 6,20" fill="#A9D8F5"/>
+        </svg>
+      </div>
+
+      <!-- Orbiting Fragment 3: Space (Bottom) -->
+      <div id="orbit-frag-city" class="absolute bottom-4 left-1/2 -translate-x-1/2 w-11 h-11 rounded-full glass-pill flex items-center justify-center opacity-30 transition-all duration-700">
+        <svg class="w-6 h-6" viewBox="0 0 40 40">
+          <polygon points="20,4 34,20 20,36 6,20" fill="#F2B9DF"/>
+        </svg>
+      </div>
+
+      <!-- Central Giant Dream Crystal -->
+      <div id="core-main-crystal" class="relative w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center">
+        <div id="core-central-halo" class="absolute inset-0 rounded-full bg-dreamPurple/25 blur-2xl transition-all duration-1000"></div>
+        <svg class="w-28 h-28 sm:w-36 sm:h-36 relative z-10" viewBox="0 0 120 120">
+          <polygon id="core-crystal-poly" points="60,8 96,50 60,112 24,50" fill="#251F4F" stroke="#8D7BFF" stroke-width="2"/>
+          <polygon points="60,8 78,50 60,112 42,50" fill="rgba(245,244,255,0.16)"/>
+          <line x1="24" y1="50" x2="96" y2="50" stroke="#F5F4FF" stroke-opacity="0.55" stroke-width="1.2"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Core Action Controls -->
+    <div class="mb-14 sm:mb-12 flex flex-col items-center gap-3 z-20">
+      <button id="btn-activate-core" onclick="CoreScene.activateCore()" disabled class="btn-dream px-8 py-3.5 rounded-full font-serifTitle text-xs sm:text-sm tracking-[0.22em] uppercase opacity-40 cursor-not-allowed">
+        Core Incomplete (0/3 Fragments)
+      </button>
+      <button onclick="Game.goToMap()" class="text-xs tracking-[0.18em] text-dreamWhite/65 hover:text-white transition py-1 cursor-pointer">
+        ← Back to Dream Map
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 07 | ENDING OVERLAY ==================== -->
+  <section id="scene-ending" class="scene-layer flex flex-col items-center justify-center p-6 text-center z-50">
+    <div class="glass-panel max-w-xl w-full rounded-3xl p-8 sm:p-12 relative overflow-hidden">
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-gradient-to-b from-dreamCyan/30 via-dreamPink/20 to-transparent blur-2xl pointer-events-none"></div>
+
+      <div class="text-[11px] tracking-[0.35em] uppercase text-dreamCyan mb-3">Restoration Complete</div>
+
+      <h2 id="ending-title" class="font-serifTitle text-3xl sm:text-5xl tracking-[0.14em] text-dreamWhite leading-tight mb-4">
+        The dream is whole again.
+      </h2>
+
+      <div class="w-20 h-[1px] bg-gradient-to-r from-transparent via-dreamPink to-transparent mx-auto my-5"></div>
+
+      <p id="ending-cn" class="text-sm sm:text-base text-dreamWhite/90 tracking-[0.18em] leading-relaxed font-light mb-8">
+        「夢境已重新完整，所有失落的記憶都回到了世界之中。」
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+        <button onclick="Game.replayDream()" class="btn-dream px-7 py-3.5 rounded-full font-serifTitle text-xs tracking-[0.22em] uppercase cursor-pointer">
+          Replay Dream
+        </button>
+        <button onclick="Game.returnToMapFromEnding()" class="glass-pill px-7 py-3.5 rounded-full text-xs tracking-[0.2em] uppercase text-dreamWhite/85 hover:border-dreamCyan/60 transition cursor-pointer">
+          Return to Dream Map
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FRAGMENT COLLECTED TOAST & PARTICLE BURST ==================== -->
+  <div id="fragment-toast" class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center opacity-0">
+    <div class="glass-panel px-8 py-6 rounded-3xl text-center border-dreamCyan/60 shadow-[0_0_50px_rgba(185,240,230,0.45)]">
+      <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-dreamCyan/20 border border-dreamCyan flex items-center justify-center">
+        <svg class="w-6 h-6 text-dreamCyan" viewBox="0 0 40 40">
+          <polygon points="20,4 34,20 20,36 6,20" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="text-[10px] tracking-[0.3em] uppercase text-dreamCyan">Memory Fragment Collected</div>
+      <div id="toast-frag-title" class="font-serifTitle text-xl tracking-[0.18em] text-dreamWhite mt-1">Nature Memory</div>
+      <div id="toast-frag-desc" class="text-xs text-dreamWhite/75 mt-1">已將記憶碎片收錄至夢境檔案</div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: STORY & LORE CHRONICLE ==================== -->
+  <div id="story-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+    <div class="glass-panel max-w-xl w-full rounded-3xl p-6 sm:p-9 relative max-h-[85vh] overflow-y-auto">
+      <button onclick="Game.toggleModal('story-modal')" class="absolute top-5 right-5 w-8 h-8 rounded-full glass-pill flex items-center justify-center text-xs hover:border-dreamPink">✕</button>
+      <div class="text-[10px] tracking-[0.3em] uppercase text-dreamCyan">Chronicle of Dreamscape</div>
+      <h3 class="font-serifTitle text-2xl sm:text-3xl tracking-[0.14em] text-dreamWhite mt-1">故事背景與探索規劃</h3>
+      <div class="w-16 h-[1px] bg-gradient-to-r from-dreamCyan to-transparent my-4"></div>
+
+      <div class="space-y-4 text-xs sm:text-sm text-dreamWhite/85 leading-relaxed font-light">
+        <div>
+          <h4 class="text-dreamPink font-medium tracking-wider mb-1">✦ 序章：夢境核心的崩解</h4>
+          <p>在現實時間之外，存在著一座由「夢境核心（Dream Core）」維繫平衡的幻想星域。某日核心無預警裂解，象徵自然、倒影與空間的三枚記憶碎片飛散至世界邊緣，天空與島嶼開始陷入失序。</p>
+        </div>
+
+        <div>
+          <h4 class="text-dreamSky font-medium tracking-wider mb-1">✦ 你的使命：夢境修復者</h4>
+          <p>你被星光引路人露米喚醒，成為穿梭於夢境裂隙的「夢境修復者」。透過與各領域的守望者對話、觸發場景機關，將三枚記憶碎片重新帶回核心。</p>
+        </div>
+
+        <div class="glass-pill rounded-2xl p-4 space-y-2 border-white/10">
+          <div class="text-[11px] tracking-widest uppercase text-dreamCyan font-medium">探索階段規劃</div>
+          <div class="flex items-start gap-2.5">
+            <span class="text-dreamCyan font-bold">01</span>
+            <span><strong>雲端森林 (Cloud Forest)</strong>：與孢子精靈莫斯對話，點擊發光菌菇與共鳴花蕊，取得 <span class="text-dreamCyan">Nature Memory</span>。</span>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="text-dreamSky font-bold">02</span>
+            <span><strong>記憶湖泊 (Memory Lake)</strong>：在鏡湖祭司希爾薇指引下，撥動水波並點亮雙子水晶，打撈 <span class="text-dreamSky">Reflection Memory</span>。</span>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="text-dreamPink font-bold">03</span>
+            <span><strong>失重城市 (Gravity City)</strong>：聽取建築師克羅諾的線索，拖曳移開倒懸鐘樓，尋獲 <span class="text-dreamPink">Space Memory</span>。</span>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="text-dreamPurple font-bold">04</span>
+            <span><strong>夢境核心 (Dream Core)</strong>：集齊三枚碎片後前往星圖中央啟動核心，解鎖完整結局。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button onclick="Game.toggleModal('story-modal')" class="btn-dream px-6 py-2.5 rounded-full text-xs tracking-[0.2em] uppercase cursor-pointer">
+          理解並繼續探索
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: MEMORY COLLECTION ==================== -->
+  <div id="collection-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel max-w-lg w-full rounded-3xl p-6 sm:p-8 relative">
+      <button onclick="Game.toggleModal('collection-modal')" class="absolute top-5 right-5 w-8 h-8 rounded-full glass-pill flex items-center justify-center text-xs hover:border-dreamPink">✕</button>
+      <div class="text-[10px] tracking-[0.28em] uppercase text-dreamPink">Dream Archive</div>
+      <h3 class="font-serifTitle text-2xl tracking-[0.16em] mt-1">記憶碎片收藏</h3>
+      <p class="text-xs text-dreamWhite/65 mt-1 mb-6">尋回散落於三個夢境區域的記憶結晶，以重塑失序的核心。</p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <!-- Slot 1: Nature Memory -->
+        <div id="col-card-forest" class="fragment-slot rounded-2xl p-4 border border-white/15 bg-white/5 flex flex-col items-center text-center">
+          <div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center mb-2.5">
+            <svg class="w-6 h-6" viewBox="0 0 40 40">
+              <polygon points="20,4 34,20 20,36 6,20" fill="currentColor" class="text-dreamCyan"/>
+            </svg>
+          </div>
+          <div class="font-serifTitle text-xs tracking-wider text-dreamCyan">Nature Memory</div>
+          <div class="text-[11px] text-dreamWhite/80 mt-0.5">雲端森林</div>
+          <div id="col-status-forest" class="text-[10px] text-dreamWhite/45 mt-2">尚未尋獲</div>
+        </div>
+
+        <!-- Slot 2: Reflection Memory -->
+        <div id="col-card-lake" class="fragment-slot rounded-2xl p-4 border border-white/15 bg-white/5 flex flex-col items-center text-center">
+          <div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center mb-2.5">
+            <svg class="w-6 h-6" viewBox="0 0 40 40">
+              <polygon points="20,4 34,20 20,36 6,20" fill="currentColor" class="text-dreamSky"/>
+            </svg>
+          </div>
+          <div class="font-serifTitle text-xs tracking-wider text-dreamSky">Reflection Memory</div>
+          <div class="text-[11px] text-dreamWhite/80 mt-0.5">記憶湖泊</div>
+          <div id="col-status-lake" class="text-[10px] text-dreamWhite/45 mt-2">尚未尋獲</div>
+        </div>
+
+        <!-- Slot 3: Space Memory -->
+        <div id="col-card-city" class="fragment-slot rounded-2xl p-4 border border-white/15 bg-white/5 flex flex-col items-center text-center">
+          <div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center mb-2.5">
+            <svg class="w-6 h-6" viewBox="0 0 40 40">
+              <polygon points="20,4 34,20 20,36 6,20" fill="currentColor" class="text-dreamPink"/>
+            </svg>
+          </div>
+          <div class="font-serifTitle text-xs tracking-wider text-dreamPink">Space Memory</div>
+          <div class="text-[11px] text-dreamWhite/80 mt-0.5">失重城市</div>
+          <div id="col-status-city" class="text-[10px] text-dreamWhite/45 mt-2">尚未尋獲</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: NAVIGATION MENU ==================== -->
+  <div id="menu-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
+    <div class="glass-panel max-w-sm w-full rounded-3xl p-7 relative text-center">
+      <button onclick="Game.toggleModal('menu-modal')" class="absolute top-5 right-5 w-8 h-8 rounded-full glass-pill flex items-center justify-center text-xs hover:border-dreamPink">✕</button>
+      <div class="font-serifTitle text-xl tracking-[0.24em] text-dreamWhite mb-1">DREAMSCAPE</div>
+      <div class="text-[11px] text-dreamSky/75 tracking-widest mb-6">夢境導航與系統設定</div>
+
+      <div class="flex flex-col gap-2.5">
+        <button onclick="Game.toggleModal('menu-modal'); Game.goToMap();" class="glass-pill py-3 rounded-xl text-xs tracking-[0.18em] hover:border-dreamCyan/60 transition">
+          DREAM MAP｜夢境地圖
+        </button>
+        <button onclick="Game.toggleModal('menu-modal'); Game.enterZone('forest');" class="glass-pill py-3 rounded-xl text-xs tracking-[0.18em] hover:border-dreamCyan/60 transition">
+          01. CLOUD FOREST｜雲端森林
+        </button>
+        <button onclick="Game.toggleModal('menu-modal'); Game.enterZone('lake');" class="glass-pill py-3 rounded-xl text-xs tracking-[0.18em] hover:border-dreamSky/60 transition">
+          02. MEMORY LAKE｜記憶湖泊
+        </button>
+        <button onclick="Game.toggleModal('menu-modal'); Game.enterZone('city');" class="glass-pill py-3 rounded-xl text-xs tracking-[0.18em] hover:border-dreamPink/60 transition">
+          03. GRAVITY CITY｜失重城市
+        </button>
+        <button onclick="Game.toggleModal('menu-modal'); Game.enterZone('core');" class="glass-pill py-3 rounded-xl text-xs tracking-[0.18em] hover:border-dreamPurple/60 transition">
+          04. DREAM CORE｜夢境核心
+        </button>
+        <div class="h-[1px] bg-white/10 my-2"></div>
+        <button onclick="Game.toggleModal('menu-modal'); Game.replayDream();" class="py-2.5 rounded-xl text-xs tracking-[0.18em] text-dreamPink/90 hover:bg-dreamPink/10 transition">
+          RESET PROGRESS｜重置夢境進度
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT: 3D ENGINE, SOUND, MOTION & GAME LOGIC ==================== -->
+  <script>
+    /**
+     * 1. WEB AUDIO API PROCEDURAL DREAM AMBIENT & CHIME SYNTHESIZER
+     * Generates ethereal harmonic pads and crystal chimes without external audio files.
+     */
+    const SoundEngine = (() => {
+      let ctx = null;
+      let isPlaying = false;
+      let masterGain = null;
+      let padInterval = null;
+
+      function init() {
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          ctx = new AudioCtx();
+          masterGain = ctx.createGain();
+          masterGain.gain.value = 0.22;
+          masterGain.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+      }
+
+      function playDreamChord() {
+        if (!isPlaying || !ctx) return;
+        const notes = [220, 261.63, 329.63, 392.00, 493.88, 587.33]; // Am9 ethereal scale
+        const freq = notes[Math.floor(Math.random() * notes.length)];
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.08, now + 1.8);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 5.5);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + 5.6);
+      }
+
+      function playChime(type = 'interact') {
+        if (!isPlaying) return;
+        init();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        if (type === 'collect') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.45);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+        } else if (type === 'portal') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(293.66, now);
+          osc.frequency.exponentialRampToValueAtTime(587.33, now + 0.6);
+          gain.gain.setValueAtTime(0.16, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+        } else {
+          osc.type = 'sine';
+          const scale = [440, 523.25, 659.25, 783.99];
+          osc.frequency.setValueAtTime(scale[Math.floor(Math.random() * scale.length)], now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+        }
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + 1.5);
+      }
+
+      function toggle() {
+        init();
+        isPlaying = !isPlaying;
+        updateUI();
+
+        if (isPlaying) {
+          playDreamChord();
+          padInterval = setInterval(playDreamChord, 2600);
+        } else {
+          clearInterval(padInterval);
+        }
+      }
+
+      function updateUI() {
+        const onIcon = document.getElementById('icon-sound-on');
+        const offIcon = document.getElementById('icon-sound-off');
+        const introDot = document.getElementById('intro-sound-dot');
+        const introLabel = document.getElementById('intro-sound-label');
+
+        if (isPlaying) {
+          onIcon.classList.remove('hidden');
+          offIcon.classList.add('hidden');
+          introDot.classList.remove('bg-dreamWhite/40');
+          introDot.classList.add('bg-dreamCyan', 'shadow-[0_0_8px_#B9F0E6]');
+          introLabel.textContent = 'Sound On';
+        } else {
+          onIcon.classList.add('hidden');
+          offIcon.classList.remove('hidden');
+          introDot.classList.add('bg-dreamWhite/40');
+          introDot.classList.remove('bg-dreamCyan', 'shadow-[0_0_8px_#B9F0E6]');
+          introLabel.textContent = 'Sound Off';
+        }
+      }
+
+      return { toggle, playChime };
+    })();
+
+    /**
+     * 2. THREE.JS 3D DREAMSCAPE WORLD (Floating Island, Dream Gate, Starfield, Energy Core)
+     */
+    const Dream3D = (() => {
+      let scene, camera, renderer;
+      let islandGroup, stars, stardust, coreCrystal, energyRings = [];
+      let targetMouseX = 0, targetMouseY = 0;
+      let currentMouseX = 0, currentMouseY = 0;
+      let scrollZoomOffset = 0;
+      let isRestored = false;
+
+      function init() {
+        const container = document.getElementById('webgl-container');
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x17152D, 0.028);
+
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.4, 14);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x8D7BFF, 0.9);
+        scene.add(ambientLight);
+
+        const pointLight1 = new THREE.PointLight(0xF2B9DF, 2.2, 40);
+        pointLight1.position.set(6, 8, 8);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xB9F0E6, 2.0, 40);
+        pointLight2.position.set(-7, -3, 6);
+        scene.add(pointLight2);
+
+        // Build Central Floating Dream Island & Gate
+        islandGroup = new THREE.Group();
+        scene.add(islandGroup);
+
+        // Inverted Cone Rock Island
+        const rockGeo = new THREE.ConeGeometry(3.2, 4.2, 7);
+        const rockMat = new THREE.MeshStandardMaterial({
+          color: 0x25214d,
+          roughness: 0.75,
+          metalness: 0.2,
+          flatShading: true
+        });
+        const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+        rockMesh.rotation.x = Math.PI;
+        rockMesh.position.y = -2.3;
+        islandGroup.add(rockMesh);
+
+        // Top Meadow Cap
+        const topGeo = new THREE.CylinderGeometry(3.25, 3.1, 0.35, 7);
+        const topMat = new THREE.MeshStandardMaterial({
+          color: 0x4b3f8c,
+          roughness: 0.6,
+          flatShading: true
+        });
+        const topMesh = new THREE.Mesh(topGeo, topMat);
+        topMesh.position.y = -0.15;
+        islandGroup.add(topMesh);
+
+        // Glowing Dream Gate Arch on Island
+        const gateGeo = new THREE.TorusGeometry(1.15, 0.08, 12, 48, Math.PI);
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xB9F0E6 });
+        const gateMesh = new THREE.Mesh(gateGeo, gateMat);
+        gateMesh.position.set(0, 0.05, 0);
+        islandGroup.add(gateMesh);
+
+        // Floating Core Octahedron Crystal inside Gate
+        const crystalGeo = new THREE.OctahedronGeometry(0.55, 0);
+        const crystalMat = new THREE.MeshStandardMaterial({
+          color: 0xF2B9DF,
+          emissive: 0x8D7BFF,
+          emissiveIntensity: 0.85,
+          roughness: 0.2,
+          metalness: 0.3
+        });
+        coreCrystal = new THREE.Mesh(crystalGeo, crystalMat);
+        coreCrystal.position.set(0, 0.85, 0);
+        islandGroup.add(coreCrystal);
+
+        // Orbiting Energy Rings around Island
+        const ringColors = [0x8D7BFF, 0xF2B9DF, 0xA9D8F5];
+        for (let i = 0; i < 3; i++) {
+          const rGeo = new THREE.TorusGeometry(4.2 + i * 0.85, 0.02, 8, 64);
+          const rMat = new THREE.MeshBasicMaterial({
+            color: ringColors[i],
+            transparent: true,
+            opacity: 0.35
+          });
+          const ring = new THREE.Mesh(rGeo, rMat);
+          ring.rotation.x = Math.PI / 2.3 + (i * 0.18);
+          ring.rotation.y = i * 0.4;
+          islandGroup.add(ring);
+          energyRings.push(ring);
+        }
+
+        // Orbiting Mini Floating Rocks / Shards
+        for (let i = 0; i < 14; i++) {
+          const shardGeo = new THREE.OctahedronGeometry(0.16 + Math.random() * 0.22, 0);
+          const shardMat = new THREE.MeshStandardMaterial({
+            color: i % 2 === 0 ? 0xA9D8F5 : 0xF2B9DF,
+            emissive: 0x8D7BFF,
+            emissiveIntensity: 0.4,
+            flatShading: true
+          });
+          const shard = new THREE.Mesh(shardGeo, shardMat);
+          const angle = (i / 14) * Math.PI * 2;
+          const radius = 4.2 + Math.random() * 3.5;
+          shard.position.set(
+            Math.cos(angle) * radius,
+            (Math.random() - 0.5) * 3.2,
+            Math.sin(angle) * radius
+          );
+          islandGroup.add(shard);
+        }
+
+        // Deep Starfield Particles
+        const starCount = 900;
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i += 3) {
+          starPositions[i] = (Math.random() - 0.5) * 90;
+          starPositions[i + 1] = (Math.random() - 0.5) * 70;
+          starPositions[i + 2] = (Math.random() - 0.5) * 70 - 10;
+        }
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMat = new THREE.PointsMaterial({
+          color: 0xF5F4FF,
+          size: 0.16,
+          transparent: true,
+          opacity: 0.8
+        });
+        stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // Foreground Ambient Stardust
+        const dustCount = 260;
+        const dustPositions = new Float32Array(dustCount * 3);
+        for (let i = 0; i < dustCount * 3; i += 3) {
+          dustPositions[i] = (Math.random() - 0.5) * 28;
+          dustPositions[i + 1] = (Math.random() - 0.5) * 20;
+          dustPositions[i + 2] = (Math.random() - 0.5) * 18;
+        }
+        const dustGeo = new THREE.BufferGeometry();
+        dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+        const dustMat = new THREE.PointsMaterial({
+          color: 0xB9F0E6,
+          size: 0.12,
+          transparent: true,
+          opacity: 0.65
+        });
+        stardust = new THREE.Points(dustGeo, dustMat);
+        scene.add(stardust);
+
+        window.addEventListener('resize', onResize);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+      }
+
+      function onMouseMove(e) {
+        targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        targetMouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        // Also apply subtle parallax to Map Island Nodes if visible
+        const mapStage = document.getElementById('map-parallax-stage');
+        if (mapStage && document.getElementById('scene-map').classList.contains('active')) {
+          gsap.to(mapStage, {
+            x: -targetMouseX * 18,
+            y: targetMouseY * 14,
+            duration: 1.2,
+            ease: 'power2.out'
+          });
+        }
+      }
+
+      function onTouchMove(e) {
+        if (e.touches && e.touches.length > 0) {
+          targetMouseX = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
+          targetMouseY = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+        }
+      }
+
+      function onResize() {
+        if (!camera || !renderer) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function setSceneTheme(zone) {
+        const container = document.getElementById('webgl-container');
+        if (isRestored && zone !== 'intro') {
+          container.style.background = 'radial-gradient(circle at 50% 45%, #463b8c 0%, #242052 55%, #17152D 100%)';
+          return;
+        }
+        const gradients = {
+          intro: 'radial-gradient(circle at 50% 45%, #26214d 0%, #17152D 65%, #0d0c1d 100%)',
+          map: 'radial-gradient(circle at 50% 50%, #2a2359 0%, #17152D 70%, #0f0e21 100%)',
+          forest: 'radial-gradient(circle at 50% 35%, #45295e 0%, #221a42 60%, #17152D 100%)',
+          lake: 'radial-gradient(circle at 50% 40%, #1b345c 0%, #161d3d 65%, #101226 100%)',
+          city: 'radial-gradient(circle at 50% 40%, #3a2357 0%, #1d183b 65%, #121024 100%)',
+          core: 'radial-gradient(circle at 50% 50%, #37286e 0%, #17152D 75%, #0b0a17 100%)'
+        };
+        container.style.background = gradients[zone] || gradients.intro;
+
+        // Adjust 3D island visibility depending on view
+        if (islandGroup) {
+          gsap.to(islandGroup.scale, {
+            x: zone === 'intro' ? 1 : 0.72,
+            y: zone === 'intro' ? 1 : 0.72,
+            z: zone === 'intro' ? 1 : 0.72,
+            duration: 1.4,
+            ease: 'power2.out'
+          });
+        }
+      }
+
+      function setScrollOffset(progress) {
+        scrollZoomOffset = progress * 4.5;
+      }
+
+      function celebrateRestoration() {
+        isRestored = true;
+        if (coreCrystal) {
+          coreCrystal.material.color.setHex(0xB9F0E6);
+          coreCrystal.material.emissive.setHex(0xF2B9DF);
+          coreCrystal.material.emissiveIntensity = 1.8;
+        }
+        energyRings.forEach(r => {
+          r.material.opacity = 0.85;
+          r.material.color.setHex(0xB9F0E6);
+        });
+      }
+
+      function resetRestoration() {
+        isRestored = false;
+        if (coreCrystal) {
+          coreCrystal.material.color.setHex(0xF2B9DF);
+          coreCrystal.material.emissive.setHex(0x8D7BFF);
+          coreCrystal.material.emissiveIntensity = 0.85;
+        }
+      }
+
+      function animate(time = 0) {
+        requestAnimationFrame(animate);
+        const t = time * 0.001;
+
+        // Smooth mouse parallax interpolation
+        currentMouseX += (targetMouseX - currentMouseX) * 0.045;
+        currentMouseY += (targetMouseY - currentMouseY) * 0.045;
+
+        if (islandGroup) {
+          islandGroup.position.y = Math.sin(t * 0.9) * 0.25;
+          islandGroup.rotation.y = t * 0.14 + currentMouseX * 0.35;
+          islandGroup.rotation.x = currentMouseY * 0.16;
+        }
+
+        if (coreCrystal) {
+          coreCrystal.rotation.y = t * 1.1;
+          coreCrystal.position.y = 0.85 + Math.sin(t * 2.2) * 0.12;
+        }
+
+        energyRings.forEach((ring, idx) => {
+          ring.rotation.z = t * (0.22 + idx * 0.08) * (idx % 2 === 0 ? 1 : -1);
+        });
+
+        if (stars) {
+          stars.rotation.y = t * 0.015 + currentMouseX * 0.05;
+          stars.rotation.x = currentMouseY * 0.04;
+        }
+
+        if (stardust) {
+          stardust.rotation.y = -t * 0.03 + currentMouseX * 0.12;
+          stardust.position.y = Math.sin(t * 0.5) * 0.3;
+        }
+
+        if (camera) {
+          camera.position.z = 14 - scrollZoomOffset;
+          camera.position.x = currentMouseX * 0.65;
+          camera.position.y = 1.4 + currentMouseY * 0.45;
+          camera.lookAt(0, 0, 0);
+        }
+
+        if (renderer && scene && camera) {
+          renderer.render(scene, camera);
+        }
+      }
+
+      return { init, animate, setSceneTheme, setScrollOffset, celebrateRestoration, resetRestoration };
+    })();
+
+    /**
+     * 3. SCENE 01: CLOUD FOREST INTERACTIONS
+     */
+    const ForestScene = (() => {
+      function bloomPlant(btn, id) {
+        SoundEngine.playChime('interact');
+        gsap.fromTo(btn,
+          { scale: 0.92 },
+          { scale: 1.16, duration: 0.45, ease: 'elastic.out(1, 0.4)' }
+        );
+        const cap = btn.querySelector('.plant-cap');
+        if (cap) {
+          const colors = ['#B9F0E6', '#F2B9DF', '#A9D8F5', '#8D7BFF'];
+          cap.setAttribute('fill', colors[Math.floor(Math.random() * colors.length)]);
+        }
+      }
+
+      function triggerSecretFlower(btn) {
+        SoundEngine.playChime('interact');
+        const petals = btn.querySelector('.flower-petals');
+        gsap.to(petals, {
+          rotation: '+=120',
+          scale: 1.2,
+          duration: 0.8,
+          ease: 'back.out(1.7)'
+        });
+        document.getElementById('forest-flower-hint').textContent = '記憶碎片已甦醒！';
+        Game.collectFragment('forest');
+      }
+
+      return { bloomPlant, triggerSecretFlower };
+    })();
+
+    /**
+     * 4. SCENE 02: MEMORY LAKE RIPPLE CANVAS & CRYSTALS
+     */
+    const LakeScene = (() => {
+      let canvas, ctx;
+      let ripples = [];
+      let activatedCrystals = [false, false];
+      let animId = null;
+
+      function init() {
+        canvas = document.getElementById('lake-ripple-canvas');
+        if (!canvas) return;
+        ctx = canvas.getContext('2d');
+        resize();
+        window.addEventListener('resize', resize);
+
+        canvas.addEventListener('mousemove', (e) => {
+          if (Math.random() > 0.72) {
+            const rect = canvas.getBoundingClientRect();
+            addRipple(e.clientX - rect.left, e.clientY - rect.top, 35, 0.35);
+          }
+        });
+
+        canvas.addEventListener('click', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          addRipple(e.clientX - rect.left, e.clientY - rect.top, 110, 0.8);
+          SoundEngine.playChime('interact');
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const t = e.touches[0];
+          addRipple(t.clientX - rect.left, t.clientY - rect.top, 110, 0.8);
+          SoundEngine.playChime('interact');
+        }, { passive: true });
+      }
+
+      function resize() {
+        if (!canvas) return;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width || window.innerWidth;
+        canvas.height = rect.height || window.innerHeight * 0.65;
+      }
+
+      function addRipple(x, y, maxR = 90, alpha = 0.7) {
+        ripples.push({ x, y, r: 4, maxR, alpha });
+      }
+
+      function startLoop() {
+        resize();
+        if (animId) cancelAnimationFrame(animId);
+        function draw() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Subtle starry reflections on lake water
+          ctx.fillStyle = 'rgba(169, 216, 245, 0.04)';
+          ctx.fillRect(0, canvas.height * 0.45, canvas.width, canvas.height * 0.55);
+
+          for (let i = ripples.length - 1; i >= 0; i--) {
+            const rp = ripples[i];
+            rp.r += 1.6;
+            rp.alpha *= 0.965;
+
+            ctx.beginPath();
+            ctx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.45, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(169, 216, 245, ${rp.alpha})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            if (rp.r >= rp.maxR || rp.alpha <= 0.02) {
+              ripples.splice(i, 1);
+            }
+          }
+          animId = requestAnimationFrame(draw);
+        }
+        draw();
+      }
+
+      function activateCrystal(idx, btn) {
+        activatedCrystals[idx] = true;
+        SoundEngine.playChime('interact');
+        const glow = btn.querySelector('.crystal-glow');
+        if (glow) {
+          glow.style.background = 'rgba(185, 240, 230, 0.65)';
+          glow.style.transform = 'scale(1.5)';
+        }
+        const rect = canvas.getBoundingClientRect();
+        const bRect = btn.getBoundingClientRect();
+        addRipple(bRect.left - rect.left + bRect.width / 2, bRect.top - rect.top + bRect.height, 140, 0.9);
+
+        if (activatedCrystals[0] && activatedCrystals[1]) {
+          const fragBtn = document.getElementById('lake-secret-fragment');
+          fragBtn.classList.remove('opacity-45');
+          fragBtn.classList.add('opacity-100', 'scale-110');
+          document.getElementById('lake-frag-label').textContent = '倒影碎片已浮現・點擊收集';
+        }
+      }
+
+      function collectLakeFragment() {
+        Game.collectFragment('lake');
+      }
+
+      return { init, startLoop, activateCrystal, collectLakeFragment };
+    })();
+
+    /**
+     * 5. SCENE 03: GRAVITY CITY DRAGGABLE & ROTATABLE OBJECTS
+     */
+    const CityScene = (() => {
+      function initDraggables() {
+        const draggables = document.querySelectorAll('.gravity-draggable');
+        draggables.forEach(el => {
+          let isDragging = false;
+          let startX, startY, origLeft, origTop;
+
+          const onDown = (clientX, clientY) => {
+            isDragging = true;
+            const rect = el.getBoundingClientRect();
+            const parentRect = el.parentElement.getBoundingClientRect();
+            el.style.transform = 'none';
+            el.style.left = (rect.left - parentRect.left) + 'px';
+            el.style.top = (rect.top - parentRect.top) + 'px';
+            origLeft = parseFloat(el.style.left);
+            origTop = parseFloat(el.style.top);
+            startX = clientX;
+            startY = clientY;
+          };
+
+          const onMove = (clientX, clientY) => {
+            if (!isDragging) return;
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            el.style.left = (origLeft + dx) + 'px';
+            el.style.top = (origTop + dy) + 'px';
+          };
+
+          const onUp = () => {
+            if (isDragging) {
+              isDragging = false;
+              SoundEngine.playChime('interact');
+            }
+          };
+
+          el.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY));
+          window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+          window.addEventListener('mouseup', onUp);
+
+          el.addEventListener('touchstart', (e) => {
+            const t = e.touches[0];
+            onDown(t.clientX, t.clientY);
+          }, { passive: true });
+          window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const t = e.touches[0];
+            onMove(t.clientX, t.clientY);
+          }, { passive: true });
+          window.addEventListener('touchend', onUp);
+        });
+      }
+
+      function rotateObject(el) {
+        SoundEngine.playChime('interact');
+        const currentRot = parseInt(el.dataset.rot || '0', 10) + 45;
+        el.dataset.rot = currentRot;
+        gsap.to(el, { rotation: currentRot, duration: 0.5, ease: 'back.out(1.5)' });
+      }
+
+      function collectCityFragment() {
+        Game.collectFragment('city');
+        // Re-align floating buildings symmetrically after space memory is restored
+        gsap.to('#drag-building-1', { left: '15%', top: '30%', rotation: 0, duration: 1.1, ease: 'power3.out' });
+        gsap.to('#drag-building-2', { left: '72%', top: '30%', rotation: 0, duration: 1.1, ease: 'power3.out' });
+        gsap.to('#drag-building-3', { left: '44%', top: '68%', rotation: 0, duration: 1.1, ease: 'power3.out' });
+      }
+
+      return { initDraggables, rotateObject, collectCityFragment };
+    })();
+
+    /**
+     * 6. SCENE 04: DREAM CORE RESTORATION SEQUENCE
+     */
+    const CoreScene = (() => {
+      function updateCoreState(fragments) {
+        const count = Object.values(fragments).filter(Boolean).length;
+        const btn = document.getElementById('btn-activate-core');
+        const desc = document.getElementById('core-scene-desc');
+        const halo = document.getElementById('core-central-halo');
+        const crystal = document.getElementById('core-crystal-poly');
+
+        // Light up orbiting fragment slots
+        ['forest', 'lake', 'city'].forEach(key => {
+          const orb = document.getElementById(`orbit-frag-${key}`);
+          if (fragments[key]) {
+            orb.classList.remove('opacity-30');
+            orb.classList.add('opacity-100', 'scale-110', 'shadow-[0_0_20px_#B9F0E6]');
+          } else {
+            orb.classList.add('opacity-30');
+            orb.classList.remove('opacity-100', 'scale-110', 'shadow-[0_0_20px_#B9F0E6]');
+          }
+        });
+
+        if (count === 3) {
+          btn.disabled = false;
+          btn.classList.remove('opacity-40', 'cursor-not-allowed');
+          btn.classList.add('cursor-pointer', 'border-dreamCyan', 'shadow-[0_0_30px_rgba(185,240,230,0.6)]');
+          btn.textContent = 'Activate Dream Core';
+          desc.textContent = '三枚記憶碎片已齊聚核心周圍。點擊啟動核心，重塑失序的夢境世界！';
+          halo.classList.remove('bg-dreamPurple/25');
+          halo.classList.add('bg-dreamCyan/45', 'scale-125');
+          crystal.setAttribute('stroke', '#B9F0E6');
+        } else {
+          btn.disabled = true;
+          btn.classList.add('opacity-40', 'cursor-not-allowed');
+          btn.classList.remove('cursor-pointer', 'border-dreamCyan');
+          btn.textContent = `Core Incomplete (${count}/3 Fragments)`;
+          desc.textContent = `核心仍處於裂解狀態，尚需尋回 ${3 - count} 枚記憶碎片才能啟動修復。`;
+        }
+      }
+
+      function activateCore() {
+        SoundEngine.playChime('collect');
+        const btn = document.getElementById('btn-activate-core');
+        btn.disabled = true;
+
+        const tl = gsap.timeline({
+          onComplete: () => {
+            Dream3D.celebrateRestoration();
+            Game.showEnding();
+          }
+        });
+
+        // 3 Fragments fly into the center core
+        tl.to('#orbit-frag-forest', { top: '50%', left: '50%', xPercent: -50, yPercent: -50, scale: 0.4, opacity: 0, duration: 0.9, ease: 'power3.in' }, 0)
+          .to('#orbit-frag-lake', { top: '50%', right: 'auto', left: '50%', xPercent: -50, yPercent: -50, scale: 0.4, opacity: 0, duration: 0.9, ease: 'power3.in' }, 0.1)
+          .to('#orbit-frag-city', { bottom: 'auto', top: '50%', left: '50%', xPercent: -50, yPercent: -50, scale: 0.4, opacity: 0, duration: 0.9, ease: 'power3.in' }, 0.2)
+          // Core crystal spins & radiates light
+          .to('#core-main-crystal', { scale: 1.45, rotation: 360, duration: 1.4, ease: 'power2.inOut' }, 0.7)
+          .to('#core-central-halo', { scale: 3.5, backgroundColor: 'rgba(245, 244, 255, 0.85)', duration: 1.2 }, 0.9);
+      }
+
+      return { updateCoreState, activateCore };
+    })();
+
+    /**
+     * 7. MAIN GAME STATE CONTROLLER & PERSISTENCE
+     */
+    const Game = (() => {
+      const STORAGE_KEY = 'dreamscape_save_v1';
+      let state = {
+        currentScene: 'intro',
+        fragments: {
+          forest: false,
+          lake: false,
+          city: false
+        },
+        completed: false
+      };
+
+      const fragmentMeta = {
+        forest: { title: 'Nature Memory', desc: '來自雲端森林的初生記憶結晶' },
+        lake: { title: 'Reflection Memory', desc: '來自記憶湖泊的星空倒影結晶' },
+        city: { title: 'Space Memory', desc: '來自失重城市的空間秩序結晶' }
+      };
+
+      function init() {
+        loadProgress();
+        Dream3D.init();
+        Dream3D.animate();
+        LakeScene.init();
+        CityScene.initDraggables();
+        initScrollTrigger();
+        playIntroTimeline();
+        syncUI();
+      }
+
+      function loadProgress() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.fragments) {
+              state.fragments = { ...state.fragments, ...parsed.fragments };
+              state.completed = !!parsed.completed;
+            }
+          }
+        } catch (e) {
+          console.warn('LocalStorage unavailable:', e);
+        }
+      }
+
+      function saveProgress() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            fragments: state.fragments,
+            completed: state.completed
+          }));
+        } catch (e) {}
+      }
+
+      // Cinematic GSAP Intro Entrance
+      function playIntroTimeline() {
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+        tl.to('#intro-top-tag', { opacity: 1, y: 0, duration: 1.0 }, 0.3)
+          .to('#intro-halo', { opacity: 1, scale: 1, duration: 1.4 }, 0.4)
+          .fromTo('#intro-kicker', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 1.0 }, 0.6)
+          .fromTo('#intro-title', { opacity: 0, y: 26, letterSpacing: '0.35em' }, { opacity: 1, y: 0, letterSpacing: '0.22em', duration: 1.3 }, 0.8)
+          .to('#intro-divider', { opacity: 1, width: '7rem', duration: 0.9 }, 1.1)
+          .fromTo('#intro-cn-sub', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.0 }, 1.2)
+          .fromTo('#intro-mission-brief', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 1.0 }, 1.35)
+          .fromTo('#intro-actions', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.0 }, 1.5)
+          .to(['#intro-scroll-hint', '#intro-sound-btn'], { opacity: 1, duration: 0.9 }, 1.7);
+      }
+
+      // ScrollTrigger for Map Exploration & Sky Shift
+      function initScrollTrigger() {
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Allow scrolling from Intro directly into Dream Map
+        window.addEventListener('wheel', (e) => {
+          if (state.currentScene === 'intro' && e.deltaY > 30) {
+            startDreaming();
+          }
+        }, { passive: true });
+
+        ScrollTrigger.create({
+          trigger: '#scroll-track',
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 0.8,
+          onUpdate: (self) => {
+            if (state.currentScene !== 'map') return;
+            const p = self.progress;
+            Dream3D.setScrollOffset(p);
+            const progBar = document.getElementById('map-scroll-progress');
+            if (progBar) {
+              progBar.style.height = `${Math.max(20, p * 100)}%`;
+            }
+          }
+        });
+      }
+
+      // Iris Portal Scene Transition
+      function transitionTo(targetScene, callback) {
+        const portal = document.getElementById('transition-portal');
+        SoundEngine.playChime('portal');
+
+        const tl = gsap.timeline();
+        tl.set(portal, { opacity: 1, pointerEvents: 'auto' })
+          .to(portal, {
+            clipPath: 'circle(150% at 50% 50%)',
+            duration: 0.65,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              // Hide all scenes
+              document.querySelectorAll('.scene-layer').forEach(el => {
+                el.classList.remove('active');
+              });
+
+              state.currentScene = targetScene;
+              const nextEl = document.getElementById(`scene-${targetScene}`);
+              if (nextEl) nextEl.classList.add('active');
+
+              // Toggle HUD visibility
+              const hud = document.getElementById('game-hud');
+              const footerHud = document.getElementById('game-footer-hud');
+              const scrollTrack = document.getElementById('scroll-track');
+
+              if (targetScene === 'intro') {
+                gsap.set([hud, footerHud], { opacity: 0, pointerEvents: 'none' });
+                scrollTrack.classList.remove('enabled');
+                window.scrollTo(0, 0);
+              } else {
+                gsap.to([hud, footerHud], { opacity: 1, duration: 0.5 });
+                if (targetScene === 'map') {
+                  scrollTrack.classList.add('enabled');
+                } else {
+                  scrollTrack.classList.remove('enabled');
+                  window.scrollTo(0, 0);
+                }
+              }
+
+              Dream3D.setSceneTheme(targetScene);
+              updateContextHint(targetScene);
+              if (callback) callback();
+            }
+          })
+          .to(portal, {
+            clipPath: 'circle(0% at 50% 50%)',
+            duration: 0.75,
+            ease: 'power2.out',
+            onComplete: () => {
+              gsap.set(portal, { opacity: 0, pointerEvents: 'none' });
+            }
+          });
+      }
+
+      function updateContextHint(scene) {
+        const hints = {
+          map: '點擊漂浮島嶼探索夢境區域，或上下捲動穿梭雲層深度',
+          forest: '點擊發光蘑菇與奇幻花朵，尋找隱藏的 Nature Memory',
+          lake: '滑動或點擊湖面產生波紋，喚醒水晶取得 Reflection Memory',
+          city: '按住並拖曳懸浮建築移開遮蔽，發掘隱藏的 Space Memory',
+          core: '集齊三枚記憶碎片後，點擊啟動夢境核心完成修復',
+          ending: '夢境秩序已完全恢復'
+        };
+        const el = document.getElementById('hud-hint-text');
+        if (el) el.textContent = hints[scene] || '';
+      }
+
+      function startDreaming() {
+        transitionTo('map');
+      }
+
+      function returnToIntro() {
+        transitionTo('intro');
+      }
+
+      function goToMap() {
+        transitionTo('map');
+      }
+
+      function enterZone(zone) {
+        transitionTo(zone, () => {
+          if (zone === 'lake') {
+            LakeScene.startLoop();
+          } else if (zone === 'core') {
+            CoreScene.updateCoreState(state.fragments);
+          }
+        });
+      }
+
+      function hoverZone(zone, isEntering) {
+        if (isEntering) {
+          SoundEngine.playChime('interact');
+        }
+      }
+
+      function collectFragment(zoneKey) {
+        if (state.fragments[zoneKey]) {
+          // Already collected: give gentle feedback
+          showFragmentToast(zoneKey, true);
+          return;
+        }
+
+        state.fragments[zoneKey] = true;
+        saveProgress();
+        SoundEngine.playChime('collect');
+        syncUI();
+        showFragmentToast(zoneKey, false);
+        updateNPCDialogues();
+      }
+
+      function updateNPCDialogues() {
+        const count = Object.values(state.fragments).filter(Boolean).length;
+        const lumiEl = document.getElementById('npc-lumi-speech');
+        if (lumiEl) {
+          if (count === 0) {
+            lumiEl.textContent = '「修復者，歡迎來到失序星域。點擊三個外圍島嶼，尋回散落的記憶碎片吧！」';
+          } else if (count < 3) {
+            lumiEl.textContent = `「太棒了！你已尋回 ${count}/3 枚記憶碎片，繼續探索尚未點亮的夢境島嶼吧！」`;
+          } else {
+            lumiEl.textContent = '「三枚記憶碎片已全部齊聚！快點擊星域中央的【DREAM CORE】完成修復！」';
+          }
+        }
+
+        if (state.fragments.forest) {
+          const mossEl = document.getElementById('npc-moss-speech');
+          if (mossEl) mossEl.textContent = '「菌菇林重新散發溫暖的光芒了！謝謝你找回自然記憶，去其他島嶼看看吧。」';
+        }
+        if (state.fragments.lake) {
+          const sylvieEl = document.getElementById('npc-sylvie-speech');
+          if (sylvieEl) sylvieEl.textContent = '「鏡湖再次清晰倒映出星河了……倒影記憶已託付給你。」';
+        }
+        if (state.fragments.city) {
+          const chronoEl = document.getElementById('npc-chrono-speech');
+          if (chronoEl) chronoEl.textContent = '「懸浮建築已恢復對稱軌道！空間記憶已與你共鳴。」';
+        }
+      }
+
+      function talkToNPC(npcKey) {
+        SoundEngine.playChime('interact');
+        updateNPCDialogues();
+        const target = document.getElementById(`npc-${npcKey}-speech`);
+        if (target && target.parentElement) {
+          gsap.fromTo(target.parentElement,
+            { scale: 0.96 },
+            { scale: 1, duration: 0.35, ease: 'back.out(1.6)' }
+          );
+        }
+      }
+
+      function showFragmentToast(zoneKey, alreadyHad) {
+        const meta = fragmentMeta[zoneKey];
+        const toast = document.getElementById('fragment-toast');
+        document.getElementById('toast-frag-title').textContent = meta.title;
+        document.getElementById('toast-frag-desc').textContent = alreadyHad
+          ? '此記憶碎片已收錄於夢境檔案中'
+          : meta.desc;
+
+        gsap.killTweensOf(toast);
+        gsap.fromTo(toast,
+          { opacity: 0, scale: 0.75, y: 20 },
+          {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            duration: 0.55,
+            ease: 'back.out(1.7)',
+            onComplete: () => {
+              gsap.to(toast, { opacity: 0, y: -20, duration: 0.5, delay: 1.5 });
+            }
+          }
+        );
+      }
+
+      function syncUI() {
+        const count = Object.values(state.fragments).filter(Boolean).length;
+        document.getElementById('hud-frag-badge').textContent = `${count}/3`;
+        document.getElementById('footer-frag-count').textContent = `${count}/3`;
+
+        // Update Map Core Label
+        const coreLabel = document.getElementById('core-status-label');
+        const coreCrystal = document.getElementById('core-map-crystal');
+        const coreAura = document.getElementById('core-glow-aura');
+        if (count === 3) {
+          coreLabel.textContent = '夢境核心・已解鎖可修復！';
+          coreLabel.classList.remove('text-dreamPink/90');
+          coreLabel.classList.add('text-dreamCyan', 'font-medium');
+          coreCrystal.setAttribute('stroke', '#B9F0E6');
+          coreAura.classList.add('bg-dreamCyan/45', 'scale-125');
+        } else {
+          coreLabel.textContent = `夢境核心・尚未完整 (${count}/3)`;
+          coreLabel.classList.add('text-dreamPink/90');
+          coreLabel.classList.remove('text-dreamCyan', 'font-medium');
+          coreCrystal.setAttribute('stroke', '#8D7BFF');
+          coreAura.classList.remove('bg-dreamCyan/45', 'scale-125');
+        }
+
+        // Update Mini Gems, Map Checkmarks & Collection Modal
+        const colors = { forest: '#B9F0E6', lake: '#A9D8F5', city: '#F2B9DF' };
+        ['forest', 'lake', 'city'].forEach(key => {
+          const collected = state.fragments[key];
+          const miniGem = document.getElementById(`mini-gem-${key}`);
+          const mapBadge = document.getElementById(`map-badge-${key}`);
+          const colCard = document.getElementById(`col-card-${key}`);
+          const colStatus = document.getElementById(`col-status-${key}`);
+
+          if (collected) {
+            miniGem.style.backgroundColor = colors[key];
+            miniGem.style.borderColor = '#F5F4FF';
+            miniGem.style.boxShadow = `0 0 10px ${colors[key]}`;
+            mapBadge.classList.remove('hidden');
+            colCard.classList.add('collected');
+            colStatus.textContent = '已尋獲記憶';
+            colStatus.classList.remove('text-dreamWhite/45');
+            colStatus.classList.add('text-dreamCyan');
+          } else {
+            miniGem.style.backgroundColor = 'rgba(255,255,255,0.05)';
+            miniGem.style.borderColor = 'rgba(255,255,255,0.3)';
+            miniGem.style.boxShadow = 'none';
+            mapBadge.classList.add('hidden');
+            colCard.classList.remove('collected');
+            colStatus.textContent = '尚未尋獲';
+            colStatus.classList.add('text-dreamWhite/45');
+            colStatus.classList.remove('text-dreamCyan');
+          }
+        });
+
+        CoreScene.updateCoreState(state.fragments);
+        updateNPCDialogues();
+      }
+
+      function showEnding() {
+        state.completed = true;
+        saveProgress();
+        const endingEl = document.getElementById('scene-ending');
+        endingEl.classList.add('active');
+        gsap.fromTo(endingEl.firstElementChild,
+          { opacity: 0, scale: 0.88, y: 24 },
+          { opacity: 1, scale: 1, y: 0, duration: 1.0, ease: 'power3.out' }
+        );
+      }
+
+      function returnToMapFromEnding() {
+        document.getElementById('scene-ending').classList.remove('active');
+        goToMap();
+      }
+
+      function replayDream() {
+        state.fragments = { forest: false, lake: false, city: false };
+        state.completed = false;
+        saveProgress();
+        Dream3D.resetRestoration();
+        document.getElementById('scene-ending').classList.remove('active');
+
+        // Reset Core orbiting positions
+        gsap.set('#orbit-frag-forest', { clearProps: 'all' });
+        gsap.set('#orbit-frag-lake', { clearProps: 'all' });
+        gsap.set('#orbit-frag-city', { clearProps: 'all' });
+        gsap.set('#core-main-crystal', { clearProps: 'all' });
+        gsap.set('#core-central-halo', { clearProps: 'all' });
+
+        syncUI();
+        transitionTo('intro');
+      }
+
+      function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        const isHidden = modal.classList.contains('hidden');
+        if (isHidden) {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          gsap.fromTo(modal.firstElementChild, { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.3 });
+        } else {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
+
+      return {
+        init,
+        startDreaming,
+        returnToIntro,
+        goToMap,
+        enterZone,
+        hoverZone,
+        collectFragment,
+        showEnding,
+        returnToMapFromEnding,
+        replayDream,
+        toggleModal,
+        talkToNPC
+      };
+    })();
+
+    /**
+     * 8. DREAM CURSOR FOLLOWER & STARDUST TRAIL
+     */
+    const CursorLight = (() => {
+      let orb;
+      let targetX = window.innerWidth / 2;
+      let targetY = window.innerHeight / 2;
+      let currentX = targetX;
+      let currentY = targetY;
+      let lastSparkTime = 0;
+
+      function init() {
+        orb = document.getElementById('dream-cursor-glow');
+        if (!orb) return;
+
+        window.addEventListener('mousemove', (e) => {
+          targetX = e.clientX;
+          targetY = e.clientY;
+          if (!orb.classList.contains('active')) {
+            currentX = targetX;
+            currentY = targetY;
+            orb.classList.add('active');
+          }
+
+          const now = performance.now();
+          if (now - lastSparkTime > 45) {
+            spawnSpark(targetX, targetY);
+            lastSparkTime = now;
+          }
+        }, { passive: true });
+
+        window.addEventListener('mouseleave', () => {
+          orb.classList.remove('active');
+        });
+
+        window.addEventListener('mousedown', () => {
+          orb.classList.add('clicking');
+        });
+
+        window.addEventListener('mouseup', () => {
+          orb.classList.remove('clicking');
+        });
+
+        animate();
+      }
+
+      function spawnSpark(x, y) {
+        const spark = document.createElement('div');
+        spark.className = 'cursor-trail-spark';
+        const colors = ['#B9F0E6', '#F2B9DF', '#A9D8F5', '#F5F4FF'];
+        spark.style.background = colors[Math.floor(Math.random() * colors.length)];
+        spark.style.left = `${x + (Math.random() - 0.5) * 8}px`;
+        spark.style.top = `${y + (Math.random() - 0.5) * 8}px`;
+        document.body.appendChild(spark);
+
+        gsap.to(spark, {
+          y: `+=${12 + Math.random() * 14}`,
+          x: `+=${(Math.random() - 0.5) * 16}`,
+          scale: 0,
+          opacity: 0,
+          duration: 0.75,
+          ease: 'power2.out',
+          onComplete: () => spark.remove()
+        });
+      }
+
+      function animate() {
+        currentX += (targetX - currentX) * 0.18;
+        currentY += (targetY - currentY) * 0.18;
+        if (orb) {
+          orb.style.left = `${currentX}px`;
+          orb.style.top = `${currentY}px`;
+        }
+        requestAnimationFrame(animate);
+      }
+
+      return { init };
+    })();
+
+    // Boot Application on Window Load
+    window.addEventListener('DOMContentLoaded', () => {
+      Game.init();
+      CursorLight.init();
+    });
+  </script>
+</body>
+</html>
